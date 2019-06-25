@@ -58,14 +58,14 @@ class Distortion:
 
     def generate_data(self, data, rank_root):
         imgs = glob(os.path.join(data, '*'))
-        process_length = len(imgs) * 12 * 4
+        process_length = len(imgs) * 4
 
         for i in range(1, 11):
             func_path = os.path.join(rank_root, str(i))
             if not os.path.exists(func_path):
                 os.mkdir(func_path)
             print('generating the %s ...' % self.idx2func[i])
-            sleep(0.01)
+            sleep(0.1)
             with tqdm(total=process_length) as pbar:
                 for level in range(4):
                     level_path = os.path.join(func_path, str(level))
@@ -78,24 +78,26 @@ class Distortion:
                         save_path = os.path.join(level_path, img_name)
                         cv2.imwrite(save_path, distorted_img)
                         pbar.update(1)
-            # print('')
+            print('')
 
 
 
-    def gaussian_noise(self, img, level, is_rgb=True, return_uint8=True):
+    def gaussian_noise(self, img, level, is_rgb=True, return_uint8=True, var=False):
         """
         高斯噪声
         :param img: 输入图像rgb矩阵
         :param level: 方差等级
         :param is_rgb: 灰度或彩色
         """
-        img /=255.0
+        img = img.astype(np.float)/255.0
         shape = img.shape
+        if not var:
+            level = self.wn_level[level]
         if not is_rgb:
             shape[-1] = 1
-            noise = np.random.normal(0, self.wn_level[level], shape)
+            noise = np.random.normal(0, level, shape)
         else:
-            noise = np.random.normal(0, self.gnc_level[level], shape)
+            noise = np.random.normal(0, level, shape)
         img += noise
         img *= 255
         img = np.clip(img, 0, 255)
@@ -234,7 +236,7 @@ class Distortion:
         ifft2 = np.fft.ifft2(np.concatenate([ghp1, ghp2, ghp3], axis=-1))
         img = np.real(ifft2)
         img = np.clip(255 * img, 0, 255)
-        img = self.gaussian_noise(img, self.hfn_level[level])
+        img = self.gaussian_noise(img, self.hfn_level[level], var=True)
         if return_uint8:
             return img.astype(np.uint8)
         else:

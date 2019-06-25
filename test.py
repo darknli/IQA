@@ -108,8 +108,8 @@ def gaussian_noise(img, level, is_rgb=True, return_uint8=True):
 # # cv2.imshow("1",img_1)
 # cv2.waitKey()
 
-# dis = Distortion()
-# img = cv2.imread(r'C:\Users\Darkn\Desktop\1\1.jpg')
-# img = dis.gassian_blur(img, 0)
-# cv2.imshow("img", img)
-# cv2.waitKey()
+dis = Distortion()
+img = cv2.imread(r'C:\Users\Darkn\Desktop\1\1.jpg')
+img = dis.gaussian_noise(img, 0)
+cv2.imshow("img", img)
+cv2.waitKey()
