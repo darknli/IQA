@@ -64,10 +64,15 @@ class Distortion:
             print('generating the %s ...' % self.idx2func[i])
             for level in range(4):
                 level_path = os.path.join(func_path, str(level))
+                if not os.path.exists(level_path):
+                    os.mkdir(level_path)
                 for img in imgs:
                     img_name = os.path.basename(img)
+                    img = cv2.imread(img).astype(np.float)
                     distorted_img = eval("self."+self.idx2func[i])(img, level)
-                    cv2.imwrite(os.path.join(level_path, img_name), distorted_img)
+                    save_path = os.path.join(level_path, img_name)
+                    print(save_path)
+                    cv2.imwrite(save_path, distorted_img)
 
 
     def gaussian_noise(self, img, level, is_rgb=True, return_uint8=True):
@@ -293,4 +298,4 @@ class Distortion:
 
 if __name__ == '__main__':
     distor = Distortion()
-    distor.generate_data("", "")
+    distor.generate_data(r"D:\temp_data\precision_data\test\normal", r"D:\temp_data\distortion")
