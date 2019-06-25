@@ -23,6 +23,7 @@ import os
 from PIL import Image
 from glob import glob
 from tqdm import tqdm
+from time import sleep
 
 class Distortion:
     def __init__(self):
@@ -46,14 +47,13 @@ class Distortion:
             1: "gaussian_noise",
             2: "gassian_blur",
             3: "impulse_noise",
-            4: "quantization_noise",
-            5: "jpeg_compression",
-            6: "nepn",
-            7: "block_wise",
-            8: "hf_noise",
-            9: "multi_gn",
-            10:"cqd",
-            11:"ca"
+            4: "jpeg_compression",
+            5: "nepn",
+            6: "block_wise",
+            7: "hf_noise",
+            8: "multi_gn",
+            9:"cqd",
+            10:"ca"
         }
 
     def generate_data(self, data, rank_root):
@@ -65,6 +65,7 @@ class Distortion:
             if not os.path.exists(func_path):
                 os.mkdir(func_path)
             print('generating the %s ...' % self.idx2func[i])
+            sleep(0.01)
             with tqdm(total=process_length) as pbar:
                 for level in range(4):
                     level_path = os.path.join(func_path, str(level))
@@ -77,6 +78,8 @@ class Distortion:
                         save_path = os.path.join(level_path, img_name)
                         cv2.imwrite(save_path, distorted_img)
                         pbar.update(1)
+            print('')
+
 
 
     def gaussian_noise(self, img, level, is_rgb=True, return_uint8=True):
