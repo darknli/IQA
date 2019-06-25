@@ -78,7 +78,7 @@ class Distortion:
                         save_path = os.path.join(level_path, img_name)
                         cv2.imwrite(save_path, distorted_img)
                         pbar.update(1)
-            print('')
+            # print('')
 
 
 
@@ -166,7 +166,6 @@ class Distortion:
         """
         w, h = img.shape[:2]
         nepn_img = img.copy()
-        print(nepn_img.shape, img.shape)
         for _ in range(self.nepn_level[level]):
             rw = np.random.randint(1, w - 30)
             rh = np.random.randint(1, h - 30)
@@ -189,11 +188,11 @@ class Distortion:
         b_mean = np.mean(img[:, :, 2])
 
         level_map = {
-            5: lambda x: x,
             4: lambda x: x,
-            3: lambda x: x + 30,
-            2: lambda x: x + 50,
-            1: lambda x: np.zeros_like(x)
+            3: lambda x: x,
+            2: lambda x: x + 30,
+            1: lambda x: x + 50,
+            0: lambda x: np.zeros_like(x)
         }
         g_mean = level_map[level](g_mean)
         concat = np.array([r_mean, g_mean, b_mean])
