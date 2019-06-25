@@ -97,14 +97,14 @@ class Distortion:
         else:
             return img
 
-    def gassian_blur(self, img, level, sigma=0.1, return_uint8=True):
+    def gassian_blur(self, img, level, return_uint8=True):
         """
         高斯模糊
         :param img: 输入图像rgb矩阵
         :param level: 卷积核大小等级
         :param sigma: sigma大小
         """
-        img = cv2.GaussianBlur(img, self.gblur_level[level], sigma)
+        img = cv2.GaussianBlur(img, (self.gblur_level[level], self.gblur_level[level]), np.sqrt(self.gblur_level[level]/6))
         if return_uint8:
             return img.astype(np.uint8)
         else:
@@ -289,7 +289,7 @@ class Distortion:
         b2[:, level // 2:] = b[:, 1:-level // 2 + 1]
         img[:, :, 0] = r2
         img[:, :, 2] = b2
-        img = cv2.GaussianBlur(img, (hsize, hsize), hsize / 6)
+        img = cv2.GaussianBlur(img, (hsize, hsize), np.sqrt(hsize/6))
         if return_uint8:
             return img.astype(np.uint8)
         else:
