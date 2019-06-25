@@ -27,6 +27,13 @@ from time import sleep
 
 class Distortion:
     def __init__(self):
+        """
+        1:2
+        3:3
+        4:0
+        7:3
+
+        """
         self.wn_level = [0.001, 0.005, 0.01, 0.05]
         self.gnc_level = [0.0140, 0.0198, 0.0343, 0.0524]
         self.hfn_level = [0.001, 0.005, 0.01, 0.05]
@@ -60,7 +67,7 @@ class Distortion:
         imgs = glob(os.path.join(data, '*'))
         process_length = len(imgs) * 4
 
-        for i in range(1, 11):
+        for i in range(10, 11):
             func_path = os.path.join(rank_root, str(i))
             if not os.path.exists(func_path):
                 os.mkdir(func_path)
@@ -293,8 +300,8 @@ class Distortion:
         b = img[:, :, 2]
         r2 = r.copy()
         b2 = b.copy()
-        r2[:, level:] = r[:, 1:-level + 1]
-        b2[:, level // 2:] = b[:, 1:-level // 2 + 1]
+        r2[:, self.ca_level[level]:] = r[:, :-self.ca_level[level]]
+        b2[:, self.ca_level[level] // 2:] = b[:, :-self.ca_level[level] // 2]
         img[:, :, 0] = r2
         img[:, :, 2] = b2
         img = cv2.GaussianBlur(img, (hsize, hsize), np.sqrt(hsize/6))
