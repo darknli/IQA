@@ -126,7 +126,7 @@ class Distortion:
         salt_prob = np.random.uniform(0, self.in_level[level])
         salt_noise = np.zeros_like(img)
         pepper_noise = 255 * np.ones_like(img)
-        prob_mat = np.random.uniform(0, 1, img.shape[:2])
+        prob_mat = np.random.uniform(0, 1, img.shape[:2]+(1,))
         pepper_img = np.where(prob_mat<self.in_level[level], pepper_noise, img)
         img = np.where(pepper_img<salt_prob, salt_noise, img)
         if return_uint8:
