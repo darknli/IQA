@@ -22,6 +22,7 @@ import cv2
 import os
 from PIL import Image
 from glob import glob
+from tqdm import tqdm
 
 class Distortion:
     def __init__(self):
@@ -57,22 +58,25 @@ class Distortion:
 
     def generate_data(self, data, rank_root):
         imgs = glob(os.path.join(data, '*'))
+        process_length = len(imgs) * 12 * 4
+
         for i in range(1, 12):
             func_path = os.path.join(rank_root, str(i))
             if not os.path.exists(func_path):
                 os.mkdir(func_path)
             print('generating the %s ...' % self.idx2func[i])
-            for level in range(4):
-                level_path = os.path.join(func_path, str(level))
-                if not os.path.exists(level_path):
-                    os.mkdir(level_path)
-                for img in imgs:
-                    img_name = os.path.basename(img)
-                    img = cv2.imread(img).astype(np.float)
-                    distorted_img = eval("self."+self.idx2func[i])(img, level)
-                    save_path = os.path.join(level_path, img_name)
-                    print(save_path)
-                    cv2.imwrite(save_path, distorted_img)
+            with tqdm(total=process_length) as pbar:
+                for level in range(4):
+                    level_path = os.path.join(func_path, str(level))
+                    if not os.path.exists(level_path):
+                        os.mkdir(level_path)
+                    for img in imgs:
+                        img_name = os.path.basename(img)
+                        img = cv2.imread(img).astype(np.float)
+                        distorted_img = eval("self."+self.idx2func[i])(img, level)
+                        save_path = os.path.join(level_path, img_name)
+                        cv2.imwrite(save_path, distorted_img)
+                        pbar.update(1)
 
 
     def gaussian_noise(self, img, level, is_rgb=True, return_uint8=True):
@@ -116,7 +120,7 @@ class Distortion:
         :param img: 输入图像rgb矩阵
         :param level: 噪声比例等级
         """
-        salt_prob = np.random.random(0, self.in_level[level])
+        salt_prob = np.random.uniform(0, self.in_level[level])
         salt_noise = np.zeros_like(img)
         pepper_noise = 255 * np.ones_like(img)
         prob_mat = np.random.uniform(0, 1, img.shape[:2])
