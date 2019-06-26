@@ -34,10 +34,10 @@ class Distortion:
         7:3
 
         """
-        self.wn_level = [0.001, 0.005, 0.01, 0.05]
+        self.wn_level = [0.03, 0.06, 0.1, 0.2]
         self.gnc_level = [0.0140, 0.0198, 0.0343, 0.0524]
-        self.hfn_level = [0.001, 0.005, 0.01, 0.05]
-        self.in_level = [0.005, 0.01, 0.05, 0.1]
+        self.hfn_level = [0.03, 0.06, 0.1, 0.2]
+        self.in_level = [0.001, 0.01, 0.05, 0.1]
         self.qn_level = [255.//27, 255.//39, 255.//55, 255.//76]
         self.gblur_level = [7, 15, 39, 91]
         self.id_level = [0.001, 0.005, 0.01, 0.05]
@@ -87,8 +87,6 @@ class Distortion:
                         pbar.update(1)
             print('')
 
-
-
     def gaussian_noise(self, img, level, is_rgb=True, return_uint8=True, var=False):
         """
         高斯噪声
@@ -126,7 +124,7 @@ class Distortion:
         else:
             return img
 
-    def impulse_noise(self, img, level, color=None, return_uint8=True):
+    def impulse_noise(self, img, level, return_uint8=True):
         """
         脉冲噪声（椒盐噪声），随机把像素点变成0或255
         :param img: 输入图像rgb矩阵
@@ -137,7 +135,7 @@ class Distortion:
         pepper_noise = 255 * np.ones_like(img)
         prob_mat = np.random.uniform(0, 1, img.shape[:2]+(1,))
         pepper_img = np.where(prob_mat<self.in_level[level], pepper_noise, img)
-        img = np.where(pepper_img<salt_prob, salt_noise, img)
+        img = np.where(prob_mat<salt_prob, salt_noise, pepper_img)
         if return_uint8:
             return img.astype(np.uint8)
         else:
@@ -222,20 +220,17 @@ class Distortion:
         def ghp(img, thresh):
             r, c = img.shape[:2]
             d0 = thresh
-            d = np.zeros((r, c))
-            h = np.zeros((r, c))
-            for i in range(r):
-                for j in range(c):
-                    d[i, j] = np.sqrt((i + 1 - r / 2) ** 2 + (j + 1 - c / 2) ** 2)
-            for i in range(r):
-                for j in range(c):
-                    h[i, j] = 1 - np.exp(-d[i, j] ** 2 / (2 * (d0 ** 2)))
-            res = h * img
+            rm = np.tile(np.arange(1, r+1).reshape(-1, 1), (1, c)) - r/2*np.ones((r, c))
+            cm = np.tile(np.arange(1, c+1).reshape(1, -1), (r, 1)) - r/2*np.ones((r, c))
+            d = np.sqrt(rm**2 + cm**2)
+            divisor = 2 * (d0**2)
+            d = 1 - np.exp(-d**2/divisor)
+            res = d * img
             return res
 
         img = img.astype(np.float) / 255
         img_fft = np.fft.fft2(img)
-        thresh = 10
+        thresh = 100
         ghp1 = np.expand_dims(ghp(img_fft[:, :, 0], thresh), axis=-1)
         ghp2 = np.expand_dims(ghp(img_fft[:, :, 1], thresh), axis=-1)
         ghp3 = np.expand_dims(ghp(img_fft[:, :, 2], thresh), axis=-1)
