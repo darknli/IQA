@@ -67,7 +67,7 @@ class Distortion:
         imgs = glob(os.path.join(data, '*'))
         process_length = len(imgs) * 4
 
-        for i in range(10, 11):
+        for i in range(1, 11):
             func_path = os.path.join(rank_root, str(i))
             if not os.path.exists(func_path):
                 os.mkdir(func_path)

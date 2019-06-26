@@ -18,9 +18,12 @@ classes = ['bad', 'good']
 
 early_stopper = EarlyStopping(patience=10)
 
-class FRIAQModel:
-    def __init__(self, model_name, weights="imagenet"):
+class SiameseModel:
+    def __init__(self, model_name, batch_size,  num_distort, num_level, weights="imagenet"):
         self.model = self.get_model(model_name, weights)
+        self.batch_size = batch_size
+        self.num_distort = num_distort
+        self.num_level = num_level
 
     def get_model(self, model_name, weights='imagenet'):
         if model_name == 'InceptionV3':
@@ -55,39 +58,49 @@ class FRIAQModel:
         x = base_model.output
         x = GlobalAveragePooling2D()(x)
         x = Dense(1024, activation='relu')(x)
-        output = Dense(1, activation='relu')(x)
+        x = Dense(1, activation='relu')(x)
+        output = SiameseLossLayer()
         model = Model(inputs=base_model.input, outputs=output)
         return model
 
-    def freeze_all_but_top(self, model):
+    def freeze_all_but_top(self):
         """Used to train just the top layers of the model."""
         # first: train only the top layers (which were randomly initialized)
         # i.e. freeze all convolutional InceptionV3 layers
-        for layer in model.layers[:-2]:
+        for layer in self.model.layers[:-2]:
             layer.trainable = False
-        for layer in model.layers[-2:]:
+        for layer in self.model.layers[-2:]:
             layer.trainable = True
         # compile the model (should be done *after* setting layers to non-trainable)
-        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        self.model.compile(optimizer='adam', loss=None)
 
-        return model
+        return self.model
 
-    def freeze_all_but_mid_and_top(self, model, num_layer=172):
+    def freeze_all_but_mid_and_top(self, num_layer=172):
         """After we fine-tune the dense layers, train deeper."""
         # we chose to train the top 2 inception blocks, i.e. we will freeze
         # the first 172 layers and unfreeze the rest:
-        for layer in model.layers[:num_layer]:
+        for layer in self.model.layers[:num_layer]:
             layer.trainable = False
-        for layer in model.layers[num_layer:]:
+        for layer in self.model.layers[num_layer:]:
             layer.trainable = True
         # we need to recompile the model for these modifications to take effect
         # we use SGD with a low learning rate
-        model.compile(
+        self.model.compile(
             optimizer=SGD(lr=0.0001, momentum=0.9),
-            loss='categorical_crossentropy',
-            metrics=['accuracy'],
+            loss=None,
         )
-        return model
+        return self.model
+
+    def fit(self, nb_epoch, steps_per_epoch, data):
+        self.model.fit_generator(
+            data,
+            steps_per_epoch=200,
+            epochs=nb_epoch,
+            # workers=16,
+            verbose=1,
+            # use_multiprocessing=True,
+        )
 
 
 class SiameseLossLayer(Layer):
