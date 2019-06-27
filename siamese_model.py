@@ -114,7 +114,7 @@ class SiameseModel:
                 for i in range(self.num_level - 1):
                     for j in range(i, self.num_level):
                         # loss += K.maximum(y_pred[batch * distort + i, :] - y_pred[batch * distort + j, :], 0)
-                        loss += 1/K.maximum(y_pred[batch * distort + i, :] - y_pred[batch * distort + j, :], 0)
+                        loss += 1/(K.maximum(y_pred[batch * distort + i, :] - y_pred[batch * distort + j, :], 0)+1)-1
         return K.sum(loss)
 
 
