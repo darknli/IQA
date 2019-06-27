@@ -254,10 +254,10 @@ class Distortion:
         """
         高频噪声
         """
-        def ghp(img, thresh):
-
-            res = d * img
-            return res
+        # def ghp(img, thresh):
+        #
+        #     res = d * img
+        #     return res
 
         img = img.astype(np.float) / 255
         img_fft = np.fft.fft2(img)
@@ -269,12 +269,9 @@ class Distortion:
         d = np.sqrt(rm ** 2 + cm ** 2)
         divisor = 2 * (d0 ** 2)
         d = 1 - np.exp(-d ** 2 / divisor)
-
-        ghp1 = np.expand_dims(d * img_fft[:, :, 0], axis=-1)
-        ghp2 = np.expand_dims(d * img_fft[:, :, 1], axis=-1)
-        ghp3 = np.expand_dims(d * img_fft[:, :, 2], axis=-1)
-
-        ifft2 = np.fft.ifft2(np.concatenate([ghp1, ghp2, ghp3], axis=-1))
+        print(d.shape)
+        ghp = np.expand_dims(d, axis=-1)*img_fft
+        ifft2 = np.fft.ifft2(ghp)
         img = np.real(ifft2)
         img = np.clip(255 * img, 0, 255)
         img = self.gaussian_noise(img, self.hfn_level[level], worker_No, var=True)
