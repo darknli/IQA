@@ -4,18 +4,39 @@ from data import DataGenerator
 
 
 def train(model_name, batch_size, epoch):
-    gendata = DataGenerator(r"D:\temp_data\precision_data\test\normal",r"D:\temp_data\distortion", batch_size=batch_size, img_shape=(256, 256))
+    val_generator = DataGenerator(r"D:\temp_data\precision_data\test\normal",r"D:\temp_data\distortion", batch_size=batch_size, img_shape=(256, 256))
+    train_generator = DataGenerator(r"D:\temp_data\precision_data\train\normal",r"D:\temp_data\train_distortion", batch_size=batch_size, img_shape=(256, 256))
+
+    num_distort, num_level = train_generator.get_num_distort_level()
+    # print(num_level, num_distort)
     # for x,y in gendata:
+    #     for batch in range(batch_size):
+    #         batch_s = batch*num_distort*num_level
+    #         for dis in range(num_distort):
+    #             step = batch_s+dis*num_level
+    #             for i in range(num_level-1):
+    #                 for j in range(i+1, num_level):
+    #                     a = x[step+i]
+    #                     b = x[step+j]
+    #                     print(step+i, step+j)
+    #             print(' ')
     #     print(x.shape, y.shape)
     #     exit()
+    num_data = train_generator.length
+    steps_per_train = num_data //1.1
+    train_info = (steps_per_train, train_generator)
 
-    num_distort, num_level = gendata.get_num_distort_level()
-    num_data = gendata.length
+    num_data = val_generator.length
+    steps_per_val = num_data // 1.1
+    val_info = (steps_per_val, val_generator)
+
     model = SiameseModel(model_name, batch_size, num_distort, num_level)
     model.summary()
     model.freeze_all_but_top()
-    steps_per_epoch = num_data //1.1
-    model.fit(epoch, steps_per_epoch, gendata)
+    model.fit(epoch, train_info, val_info)
+    for layer in range(20):
+        model.freeze_all_but_mid_and_top(-layer*10)
+        model.fit(30, train_info, val_info)
 
 def finetune():
     pass

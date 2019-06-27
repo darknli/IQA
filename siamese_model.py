@@ -58,7 +58,7 @@ class SiameseModel:
         x = base_model.output
         x = GlobalAveragePooling2D()(x)
         x = Dense(1024, activation='relu')(x)
-        output = Dense(1, activation='sigmoid')(x)
+        output = Dense(1, activation='relu')(x)
         # output = SiameseLossLayer(self.batch_size, self.num_distort, self.num_level)(x)
         model = Model(inputs=base_model.input, outputs=output)
         return model
@@ -92,10 +92,14 @@ class SiameseModel:
         )
         return self.model
 
-    def fit(self, nb_epoch, steps_per_epoch, data):
+    def fit(self, nb_epoch, train, val):
+        steps_per_train, train_data = train
+        steps_per_val, val_data = val
         self.model.fit_generator(
-            data,
-            steps_per_epoch=200,
+            train_data,
+            validation_data=val_data,
+            validation_steps=steps_per_val,
+            steps_per_epoch=steps_per_train,
             epochs=nb_epoch,
             # workers=16,
             verbose=1,
@@ -109,13 +113,21 @@ class SiameseModel:
     def loss(self, y_true, y_pred):
         self.dis = []
         loss = 0
+        margin = 10
+        sum = 0
         for batch in range(self.batch_size):
+            batch_step = batch*self.num_level*self.num_level
             for distort in range(self.num_distort):
+                distort_step = distort*self.num_level
+                step = batch_step+distort_step
                 for i in range(self.num_level - 1):
                     for j in range(i, self.num_level):
                         # loss += K.maximum(y_pred[batch * distort + i, :] - y_pred[batch * distort + j, :], 0)
-                        loss += 1/(K.maximum(y_pred[batch * distort + i, :] - y_pred[batch * distort + j, :], 0)+1)-1
-        return K.sum(loss)
+                        # loss += 1/(K.maximum(y_pred[batch * distort + i, :] - y_pred[batch * distort + j, :], 0)+1)
+                        diff = y_pred[step + j, :] - y_pred[step + i, :]+margin
+                        loss += K.maximum(diff, 0)
+                        sum += 1
+        return K.sum(loss)/sum
 
 
 class SiameseLossLayer(Layer):

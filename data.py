@@ -17,7 +17,7 @@ class DataGenerator(keras.utils.Sequence):
         self.level_dirs = self.get_level_dirs(distort_dir)
 
     def get_num_distort_level(self):
-        return len(self.level_dirs), len(list(self.level_dirs.items())[0][0])
+        return len(self.level_dirs), len(list(self.level_dirs.items())[0][1])+1
 
     def get_level_dirs(self, level_dir):
         distor_dirs = glob.glob(os.path.join(level_dir, '*'))
@@ -55,9 +55,10 @@ class DataGenerator(keras.utils.Sequence):
     def get_iqa_imgs(self, img):
         level_imgs = []
 
-        level_imgs.append(self.process_image(img))
+        origin_img = self.process_image(img)
         img_name = os.path.basename(img)
         for distort, level_paths in self.level_dirs.items():
+            level_imgs.append(origin_img)
             for level_path in level_paths:
                 level_img = os.path.join(level_path, img_name)
                 level_imgs.append(self.process_image(level_img))

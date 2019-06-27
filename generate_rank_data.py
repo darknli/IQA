@@ -66,7 +66,8 @@ class Distortion:
     def generate_data(self, data, rank_root):
         imgs = glob(os.path.join(data, '*'))
         process_length = len(imgs) * 4
-
+        if not os.path.exists(rank_root):
+            os.mkdir(rank_root)
         for i in range(1, 11):
             func_path = os.path.join(rank_root, str(i))
             if not os.path.exists(func_path):
@@ -79,8 +80,15 @@ class Distortion:
                     if not os.path.exists(level_path):
                         os.mkdir(level_path)
                     for img in imgs:
+                        if 'gif' in img:
+                            continue
                         img_name = os.path.basename(img)
-                        img = cv2.imread(img).astype(np.float)
+                        try:
+                            img = cv2.imread(img).astype(np.float)
+                        except AttributeError:
+                            print('%s 失败'%img)
+                            continue
+                            # raise AttributeError('%s 无法读取'%img)
                         distorted_img = eval("self."+self.idx2func[i])(img, level)
                         save_path = os.path.join(level_path, img_name)
                         cv2.imwrite(save_path, distorted_img)
@@ -305,7 +313,16 @@ class Distortion:
         else:
             return img
 
+def copy(src, dest):
+    import shutil
+    files = glob(os.path.join(src, '*'))
+    np.random.shuffle(files)
+    for file in files[:10000]:
+        filename = os.path.basename(file)
+        dst_file = os.path.join(dest, filename)
+        shutil.copy(file, dst_file)
+        print('%s copy to %s'%(file, dst_file))
 
 if __name__ == '__main__':
     distor = Distortion()
-    distor.generate_data(r"D:\temp_data\precision_data\test\normal", r"D:\temp_data\distortion")
+    distor.generate_data(r"D:\temp_data\iqa\train\origin", r"D:\temp_data\iqa\train\distortion")
