@@ -102,19 +102,25 @@ def gaussian_noise(img, level, is_rgb=True, return_uint8=True):
 # img = cv2.imread(r'C:\Users\Darkn\Desktop\1\1.jpg')
 # img = eval(name)(img, 8)
 # cv2.imshow("测试", img)
-# # img = cv2.GaussianBlur(img, (73, 73), 1.5)
-# # cv2.imwrite(r"C:\Users\Darkn\Desktop\1\3.jpg", img, (cv2.IMWRITE_JPEG_QUALITY, 100))
-# # img_1 = cv2.imread("test.jp2")
-# # cv2.imshow("1",img_1)
+# img = cv2.GaussianBlur(img, (73, 73), 1.5)
+# cv2.imwrite(r"C:\Users\Darkn\Desktop\1\3.jpg", img, (cv2.IMWRITE_JPEG_QUALITY, 100))
+# img_1 = cv2.imread("test.jp2")
+# cv2.imshow("1",img_1)
 # cv2.waitKey()
 
 dis = Distortion()
 img = cv2.imread(r'C:\Users\Darkn\Desktop\1\1.jpg')
 cv2.imshow("img", img)
 cv2.moveWindow("img", 500, 500)
-for i in range(4):
-    new = dis.ca(img, i)
-    w, h,c = new.shape
-    cv2.imshow("new_%d"%i, new)
-    cv2.moveWindow("new_%d"%i, i*h, 100)
+
+i1 = dis.hf_noise(img, 1)
+cv2.imshow('i1', i1)
+
+i2 = dis.gaussian_noise(img, 1)
+cv2.imshow('i2', i2)
+# for i in range(4):
+#     new = dis.ca(img, i)
+#     w, h,c = new.shape
+#     cv2.imshow("new_%d"%i, new)
+#     cv2.moveWindow("new_%d"%i, i*h, 100)
 cv2.waitKey()

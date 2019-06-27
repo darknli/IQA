@@ -3,49 +3,36 @@ from data import DataGenerator
 # from myargs import get_arg
 
 
-def train(model_name, batch_size, epoch):
+def train(model_name, batch_size, epoch, chepoints_dir, train_dir, val_dir):
     train_generator = DataGenerator(
-        r"D:\AAA\Data\myiqa\train\origin",
-        r"D:\AAA\Data\myiqa\train\distortion",
+        train_dir[0],
+        train_dir[1],
         batch_size,
         (256, 256)
     )
     val_generator = DataGenerator(
-        r"D:\AAA\Data\myiqa\val\origin",
-        r"D:\AAA\Data\myiqa\val\distortion",
+        val_dir[0],
+        val_dir[1],
         batch_size,
         (256, 256)
     )
 
     num_distort, num_level = train_generator.get_num_distort_level()
-    # print(num_level, num_distort)
-    # for x,y in gendata:
-    #     for batch in range(batch_size):
-    #         batch_s = batch*num_distort*num_level
-    #         for dis in range(num_distort):
-    #             step = batch_s+dis*num_level
-    #             for i in range(num_level-1):
-    #                 for j in range(i+1, num_level):
-    #                     a = x[step+i]
-    #                     b = x[step+j]
-    #                     print(step+i, step+j)
-    #             print(' ')
-    #     print(x.shape, y.shape)
-    #     exit()
     num_data = train_generator.length
-    steps_per_train = num_data //1.1
+    steps_per_train = num_data // 1.1
     train_info = (steps_per_train, train_generator)
 
     num_data = val_generator.length
     steps_per_val = num_data // 1.1
     val_info = (steps_per_val, val_generator)
 
-    model = SiameseModel(model_name, batch_size, num_distort, num_level)
+    model = SiameseModel(model_name, None)
+    model.set_loss_param(batch_size, num_distort, num_level)
     model.freeze_all_but_top()
-    model.fit(epoch, train_info, val_info, 'checkpoints')
+    model.fit(epoch, train_info, val_info, chepoints_dir)
     for layer in range(20):
         model.freeze_all_but_mid_and_top(-layer*10)
-        model.fit(30, train_info, val_info, 'checkpoints')
+        model.fit(30, train_info, val_info, chepoints_dir)
 
 def finetune():
     pass
@@ -55,8 +42,12 @@ def main():
     model_type = 0
     batch_size = 1
     epoch = 50
+    train_dir = (r"D:\AAA\Data\myiqa\train\origin", r"D:\AAA\Data\myiqa\train\distortion")
+    val_dir = (r"D:\AAA\Data\myiqa\val\origin", r"D:\AAA\Data\myiqa\val\distortion")
+    chepoints_dir = 'checkpoints'
+
     if model_type == 0:
-        train("MobileNetV2", batch_size, epoch)
+        train("MobileNetV2", batch_size, epoch, chepoints_dir, train_dir, val_dir)
     elif model_type == 1:
         finetune()
     else:

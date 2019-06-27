@@ -64,49 +64,67 @@ class Distortion:
             10:"ca"
         }
 
-    def generate_data(self, data, rank_root):
+    def generate_data(self, data, rank_root, num_workers=4):
         imgs = glob(os.path.join(data, '*'))
         if not os.path.exists(rank_root):
             os.mkdir(rank_root)
 
         workers = []
-        for i in range(1, 11):
+        end = 0
+        img_length = len(imgs)
+        workload = img_length//num_workers
+        for i in range(num_workers-1):
+            begin = end
+            end += workload
             workers.append(
-                Process(target=self.generat_one_sort_distortion, args=(rank_root, i, imgs))
+                Process(target=self.generate_data_one_worker, args=(imgs[begin:end], rank_root, i))
             )
+        workers.append(
+            Process(target=self.generate_data_one_worker, args=(imgs[end:img_length], rank_root, num_workers-1))
+        )
         for worker in workers:
             worker.start()
+        for worker in workers:
+            worker.join()
 
-
-    def generat_one_sort_distortion(self, rank_root, sort, imgs):
-        process_length = len(imgs) * 4
-        func_path = os.path.join(rank_root, str(sort))
-        if not os.path.exists(func_path):
-            os.mkdir(func_path)
-        print('generating the %s ...' % self.idx2func[sort])
-        sleep(0.1)
-        # with tqdm(total=process_length) as pbar:
-        for level in range(4):
-            level_path = os.path.join(func_path, str(level))
-            if not os.path.exists(level_path):
-                os.mkdir(level_path)
-            for img in imgs:
-                img_name = os.path.basename(img)
+    def generate_data_one_worker(self, imgs, rank_root, worker_No):
+        print('Process No.%d start...' % worker_No)
+        if not os.path.exists(rank_root):
+            os.mkdir(rank_root)
+        for i in range(1, 11):
+            func_path = os.path.join(rank_root, str(i))
+            if not os.path.exists(func_path):
                 try:
-                    img = cv2.imread(img).astype(np.float)
-                except AttributeError:
-                    print('fail to read %s and removing...' % img)
-                    os.remove(img)
-                    continue
-                    # raise AttributeError('%s 无法读取'%img)
-                distorted_img = eval("self." + self.idx2func[sort])(img, level)
-                save_path = os.path.join(level_path, img_name)
-                cv2.imwrite(save_path, distorted_img)
-                    # pbar.update(1)
-        print('the %s ... done' % self.idx2func[sort])
-        # print('')
+                    os.mkdir(func_path)
+                except FileExistsError:
+                    pass
+            # print('generating the %s ...' % self.idx2func[i])
+            # with tqdm(total=process_length) as pbar:
+            for level in range(4):
+                level_path = os.path.join(func_path, str(level))
+                if not os.path.exists(level_path):
+                    try:
+                        os.mkdir(level_path)
+                    except FileExistsError:
+                        pass
+                for img in imgs:
+                    if 'gif' in img:
+                        continue
+                    img_name = os.path.basename(img)
+                    try:
+                        img = cv2.imread(img).astype(np.float)
+                    except AttributeError:
+                        print('%s 失败'%img)
+                        os.remove(img)
+                        continue
+                        # raise AttributeError('%s 无法读取'%img)
+                    distorted_img = eval("self."+self.idx2func[i])(img, level, worker_No)
+                    save_path = os.path.join(level_path, img_name)
+                    cv2.imwrite(save_path, distorted_img)
+                        # pbar.update(1)
+        print('Process No.%d done' % worker_No)
 
-    def gaussian_noise(self, img, level, is_rgb=True, return_uint8=True, var=False):
+    def gaussian_noise(self, img, level, worker_No, is_rgb=True, return_uint8=True, var=False):
         """
         高斯噪声
         :param img: 输入图像rgb矩阵
@@ -130,7 +148,7 @@ class Distortion:
         else:
             return img
 
-    def gassian_blur(self, img, level, return_uint8=True):
+    def gassian_blur(self, img, level, worker_No, return_uint8=True):
         """
         高斯模糊
         :param img: 输入图像rgb矩阵
@@ -143,7 +161,7 @@ class Distortion:
         else:
             return img
 
-    def impulse_noise(self, img, level, return_uint8=True):
+    def impulse_noise(self, img, level, worker_No, return_uint8=True):
         """
         脉冲噪声（椒盐噪声），随机把像素点变成0或255
         :param img: 输入图像rgb矩阵
@@ -160,7 +178,7 @@ class Distortion:
         else:
             return img
 
-    def quantization_noise(self, img, level, return_uint8=True):
+    def quantization_noise(self, img, level, worker_No, return_uint8=True):
         """
         otsu多级图像阈值分割（未完成）
         :param img: 输入图像rgb矩阵
@@ -172,21 +190,21 @@ class Distortion:
         else:
             return img
 
-    def jpeg_compression(self, img, level, return_uint8=True):
+    def jpeg_compression(self, img, level, worker_No, return_uint8=True):
         """
         jpeg压缩
         :param img: 输入图像rgb矩阵
         :param level: 压缩等级
         """
-        cv2.imwrite("jpeg_temp.jpg", img, [cv2.IMWRITE_JPEG_QUALITY, self.jpeg_level[level]])
-        img = cv2.imread("jpeg_temp.jpg")
-        os.remove("jpeg_temp.jpg")
+        cv2.imwrite("jpeg_temp_%d.jpg"%worker_No, img, [cv2.IMWRITE_JPEG_QUALITY, self.jpeg_level[level]])
+        img = cv2.imread("jpeg_temp_%d.jpg"%worker_No)
+        os.remove("jpeg_temp_%d.jpg"%worker_No)
         if return_uint8:
             return img.astype(np.uint8)
         else:
             return img
 
-    def nepn(self, img, level, return_uint8=True):
+    def nepn(self, img, level, worker_No, return_uint8=True):
         """
         效果：在图像上生成多个“像其他图像遗留在这里”的图，效果不错
         """
@@ -203,7 +221,7 @@ class Distortion:
         else:
             return nepn_img
 
-    def block_wise(self, img, level, return_uint8=True):
+    def block_wise(self, img, level, worker_No, return_uint8=True):
         """
         效果：在图片上中生成多个随机的小方块，看起来很突兀，可以不要
         """
@@ -232,38 +250,40 @@ class Distortion:
         else:
             return img
 
-    def hf_noise(self, img, level, return_uint8=True):
+    def hf_noise(self, img, level, worker_No, return_uint8=True):
         """
         高频噪声
         """
         def ghp(img, thresh):
-            r, c = img.shape[:2]
-            d0 = thresh
-            rm = np.tile(np.arange(1, r+1).reshape(-1, 1), (1, c)) - r/2*np.ones((r, c))
-            cm = np.tile(np.arange(1, c+1).reshape(1, -1), (r, 1)) - r/2*np.ones((r, c))
-            d = np.sqrt(rm**2 + cm**2)
-            divisor = 2 * (d0**2)
-            d = 1 - np.exp(-d**2/divisor)
+
             res = d * img
             return res
 
         img = img.astype(np.float) / 255
         img_fft = np.fft.fft2(img)
         thresh = 100
-        ghp1 = np.expand_dims(ghp(img_fft[:, :, 0], thresh), axis=-1)
-        ghp2 = np.expand_dims(ghp(img_fft[:, :, 1], thresh), axis=-1)
-        ghp3 = np.expand_dims(ghp(img_fft[:, :, 2], thresh), axis=-1)
+        r, c = img.shape[:2]
+        d0 = thresh
+        rm = np.tile(np.arange(1, r + 1).reshape(-1, 1), (1, c)) - r / 2 * np.ones((r, c))
+        cm = np.tile(np.arange(1, c + 1).reshape(1, -1), (r, 1)) - r / 2 * np.ones((r, c))
+        d = np.sqrt(rm ** 2 + cm ** 2)
+        divisor = 2 * (d0 ** 2)
+        d = 1 - np.exp(-d ** 2 / divisor)
+
+        ghp1 = np.expand_dims(d * img_fft[:, :, 0], axis=-1)
+        ghp2 = np.expand_dims(d * img_fft[:, :, 1], axis=-1)
+        ghp3 = np.expand_dims(d * img_fft[:, :, 2], axis=-1)
 
         ifft2 = np.fft.ifft2(np.concatenate([ghp1, ghp2, ghp3], axis=-1))
         img = np.real(ifft2)
         img = np.clip(255 * img, 0, 255)
-        img = self.gaussian_noise(img, self.hfn_level[level], var=True)
+        img = self.gaussian_noise(img, self.hfn_level[level], worker_No, var=True)
         if return_uint8:
             return img.astype(np.uint8)
         else:
             return img
 
-    def img_denoising(self, img, level, return_uint8=True):
+    def img_denoising(self, img, level, worker_No,  return_uint8=True):
         """
         未完成
         """
@@ -276,7 +296,7 @@ class Distortion:
         else:
             return zrgb
 
-    def multi_gn(self, img, level, return_uint8=True):
+    def multi_gn(self, img, level, worker_No, return_uint8=True):
         img = img.astype(np.float)
         noise_only_img = 1 + np.random.normal(0, self.mgn_level[level], img.shape[:2])
         img[:, :, 0] *= noise_only_img
@@ -290,25 +310,25 @@ class Distortion:
         else:
             return img
 
-    def cqd(self, img, level, return_uint8=True):
+    def cqd(self, img, level, worker_No, return_uint8=True):
         """
         Color quantization dither
         """
-        cv2.imwrite("cqd.png", img)
-        lena = Image.open("cqd.png")
+        cv2.imwrite("cqd_%d.png"%worker_No, img)
+        lena = Image.open("cqd_%d.png"%worker_No)
         lena_P_dither = lena.convert("P", palette=Image.ADAPTIVE, colors=self.cqd_level[level])
         img = lena_P_dither.convert("RGB")
-        img.save("cqd_1.png")
-        img = cv2.imread("cqd_1.png")
+        img.save("cqd_%d_1.png"%worker_No)
+        img = cv2.imread("cqd_%d_1.png"%worker_No)
         del lena, lena_P_dither
-        os.remove("cqd.png")
-        os.remove("cqd_1.png")
+        os.remove("cqd_%d.png"%worker_No)
+        os.remove("cqd_%d_1.png"%worker_No)
         if return_uint8:
             return img
         else:
             return img.astype(np.float)
 
-    def ca(self, img, level, return_uint8=True):
+    def ca(self, img, level, worker_No, return_uint8=True):
         hsize = 3
         r = img[:, :, 0]
         b = img[:, :, 2]
@@ -344,4 +364,12 @@ def check_imgs(dir):
 
 if __name__ == '__main__':
     distor = Distortion()
+
+    from time import time
+    t1 = time()
     distor.generate_data(r"D:\AAA\Data\myiqa\val\origin", r"D:\AAA\Data\myiqa\val\distortion")
+    t2 = time()
+    print(t2-t1)
+    # distor.generate_data_deprecated(r"D:\AAA\Data\myiqa\val\origin", r"D:\AAA\Data\myiqa\val\distortion")
+    # t3 = time()
+    # print(t3-t2)
