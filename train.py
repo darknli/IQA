@@ -4,10 +4,15 @@ from data import DataGenerator
 
 
 def train(model_name, batch_size, epoch):
-    gendata = DataGenerator(batch_size=batch_size, img_shape=(256, 256))
+    gendata = DataGenerator(r"D:\temp_data\precision_data\test\normal",r"D:\temp_data\distortion", batch_size=batch_size, img_shape=(256, 256))
+    # for x,y in gendata:
+    #     print(x.shape, y.shape)
+    #     exit()
+
     num_distort, num_level = gendata.get_num_distort_level()
     num_data = gendata.length
     model = SiameseModel(model_name, batch_size, num_distort, num_level)
+    model.summary()
     model.freeze_all_but_top()
     steps_per_epoch = num_data //1.1
     model.fit(epoch, steps_per_epoch, gendata)

@@ -20,10 +20,10 @@ early_stopper = EarlyStopping(patience=10)
 
 class SiameseModel:
     def __init__(self, model_name, batch_size,  num_distort, num_level, weights="imagenet"):
-        self.model = self.get_model(model_name, weights)
         self.batch_size = batch_size
         self.num_distort = num_distort
         self.num_level = num_level
+        self.model = self.get_model(model_name, weights)
 
     def get_model(self, model_name, weights='imagenet'):
         if model_name == 'InceptionV3':
@@ -58,8 +58,8 @@ class SiameseModel:
         x = base_model.output
         x = GlobalAveragePooling2D()(x)
         x = Dense(1024, activation='relu')(x)
-        x = Dense(1, activation='relu')(x)
-        output = SiameseLossLayer()
+        output = Dense(1, activation='sigmoid')(x)
+        # output = SiameseLossLayer(self.batch_size, self.num_distort, self.num_level)(x)
         model = Model(inputs=base_model.input, outputs=output)
         return model
 
@@ -72,7 +72,7 @@ class SiameseModel:
         for layer in self.model.layers[-2:]:
             layer.trainable = True
         # compile the model (should be done *after* setting layers to non-trainable)
-        self.model.compile(optimizer='adam', loss=None)
+        self.model.compile(optimizer='adam', loss=self.loss)
 
         return self.model
 
@@ -88,7 +88,7 @@ class SiameseModel:
         # we use SGD with a low learning rate
         self.model.compile(
             optimizer=SGD(lr=0.0001, momentum=0.9),
-            loss=None,
+            loss=self.loss,
         )
         return self.model
 
@@ -101,6 +101,21 @@ class SiameseModel:
             verbose=1,
             # use_multiprocessing=True,
         )
+
+    def summary(self):
+        self.model.summary()
+
+
+    def loss(self, y_true, y_pred):
+        self.dis = []
+        loss = 0
+        for batch in range(self.batch_size):
+            for distort in range(self.num_distort):
+                for i in range(self.num_level - 1):
+                    for j in range(i, self.num_level):
+                        # loss += K.maximum(y_pred[batch * distort + i, :] - y_pred[batch * distort + j, :], 0)
+                        loss += 1/K.maximum(y_pred[batch * distort + i, :] - y_pred[batch * distort + j, :], 0)
+        return K.sum(loss)
 
 
 class SiameseLossLayer(Layer):
@@ -119,8 +134,8 @@ class SiameseLossLayer(Layer):
             for distort in range(self.num_distort):
                 for i in range(self.num_level-1):
                     for j in range(i, self.num_level):
-                        loss += K.maximum(inputs[batch*distort+i, :]-inputs[batch*distort+j:])
-        return loss
+                        loss += K.maximum(inputs[batch*distort+i, :]-inputs[batch*distort+j, :], 0)
+        return K.sum(loss)
 
     def call(self, inputs):
         loss = self.loss(inputs)
