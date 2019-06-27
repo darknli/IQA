@@ -5,7 +5,6 @@ import numpy as np
 import cv2
 import glob
 import os
-from PIL import Image
 
 
 class DataGenerator(keras.utils.Sequence):

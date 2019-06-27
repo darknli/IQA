@@ -24,6 +24,7 @@ from PIL import Image
 from glob import glob
 from tqdm import tqdm
 from time import sleep
+from multiprocessing import Process
 
 class Distortion:
     def __init__(self):
@@ -65,35 +66,45 @@ class Distortion:
 
     def generate_data(self, data, rank_root):
         imgs = glob(os.path.join(data, '*'))
-        process_length = len(imgs) * 4
         if not os.path.exists(rank_root):
             os.mkdir(rank_root)
+
+        workers = []
         for i in range(1, 11):
-            func_path = os.path.join(rank_root, str(i))
-            if not os.path.exists(func_path):
-                os.mkdir(func_path)
-            print('generating the %s ...' % self.idx2func[i])
-            sleep(0.1)
-            with tqdm(total=process_length) as pbar:
-                for level in range(4):
-                    level_path = os.path.join(func_path, str(level))
-                    if not os.path.exists(level_path):
-                        os.mkdir(level_path)
-                    for img in imgs:
-                        if 'gif' in img:
-                            continue
-                        img_name = os.path.basename(img)
-                        try:
-                            img = cv2.imread(img).astype(np.float)
-                        except AttributeError:
-                            print('%s 失败'%img)
-                            continue
-                            # raise AttributeError('%s 无法读取'%img)
-                        distorted_img = eval("self."+self.idx2func[i])(img, level)
-                        save_path = os.path.join(level_path, img_name)
-                        cv2.imwrite(save_path, distorted_img)
-                        pbar.update(1)
-            print('')
+            workers.append(
+                Process(target=self.generat_one_sort_distortion, args=(rank_root, i, imgs))
+            )
+        for worker in workers:
+            worker.start()
+
+
+    def generat_one_sort_distortion(self, rank_root, sort, imgs):
+        process_length = len(imgs) * 4
+        func_path = os.path.join(rank_root, str(sort))
+        if not os.path.exists(func_path):
+            os.mkdir(func_path)
+        print('generating the %s ...' % self.idx2func[sort])
+        sleep(0.1)
+        # with tqdm(total=process_length) as pbar:
+        for level in range(4):
+            level_path = os.path.join(func_path, str(level))
+            if not os.path.exists(level_path):
+                os.mkdir(level_path)
+            for img in imgs:
+                img_name = os.path.basename(img)
+                try:
+                    img = cv2.imread(img).astype(np.float)
+                except AttributeError:
+                    print('fail to read %s and removing...' % img)
+                    os.remove(img)
+                    continue
+                    # raise AttributeError('%s 无法读取'%img)
+                distorted_img = eval("self." + self.idx2func[sort])(img, level)
+                save_path = os.path.join(level_path, img_name)
+                cv2.imwrite(save_path, distorted_img)
+                    # pbar.update(1)
+        print('the %s ... done' % self.idx2func[sort])
+        # print('')
 
     def gaussian_noise(self, img, level, is_rgb=True, return_uint8=True, var=False):
         """
@@ -323,6 +334,14 @@ def copy(src, dest):
         shutil.copy(file, dst_file)
         print('%s copy to %s'%(file, dst_file))
 
+def check_imgs(dir):
+    files = glob(os.path.join(dir, '*'))
+    for file in files:
+        if cv2.imread(file) == None:
+            print('% error'%file)
+            os.remove(file)
+
+
 if __name__ == '__main__':
     distor = Distortion()
-    distor.generate_data(r"D:\temp_data\iqa\train\origin", r"D:\temp_data\iqa\train\distortion")
+    distor.generate_data(r"D:\AAA\Data\myiqa\val\origin", r"D:\AAA\Data\myiqa\val\distortion")

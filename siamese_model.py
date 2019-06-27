@@ -5,6 +5,8 @@ from tensorflow.python.keras.engine.base_layer import Layer
 from tensorflow.python.keras.layers import Dense, GlobalMaxPooling2D, Conv2D, Flatten, Softmax, GlobalAveragePooling2D, BatchNormalization, Input
 from tensorflow.python.keras.callbacks import ModelCheckpoint, EarlyStopping
 from tensorflow.python.keras import backend as K
+import cv2
+import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras.losses import categorical_crossentropy
 
@@ -61,6 +63,7 @@ class SiameseModel:
         output = Dense(1, activation='relu')(x)
         # output = SiameseLossLayer(self.batch_size, self.num_distort, self.num_level)(x)
         model = Model(inputs=base_model.input, outputs=output)
+        self.name = model_name
         return model
 
     def freeze_all_but_top(self):
@@ -92,7 +95,18 @@ class SiameseModel:
         )
         return self.model
 
-    def fit(self, nb_epoch, train, val):
+    def fit(self, nb_epoch, train, val, save_model_dir):
+
+        if not os.path.exists(save_model_dir):
+            os.mkdir(save_model_dir)
+        checkpointer = ModelCheckpoint(
+            filepath=os.path.join(save_model_dir, '{val_loss:.5f}-%s.h5' % self.name),
+            verbose=1,
+            save_best_only=True,
+            save_weights_only=True,
+            monitor='val_loss'
+        )
+
         steps_per_train, train_data = train
         steps_per_val, val_data = val
         self.model.fit_generator(
@@ -104,6 +118,7 @@ class SiameseModel:
             # workers=16,
             verbose=1,
             # use_multiprocessing=True,
+            callbacks=[checkpointer]
         )
 
     def summary(self):
@@ -129,6 +144,23 @@ class SiameseModel:
                         sum += 1
         return K.sum(loss)/sum
 
+    def load_model(self, weights):
+        self.model.load_weights(weights)
+
+    def predict(self, img):
+        img = self.process_image(img)
+        score = self.model.predict(img)
+        return score
+
+    def process_image(self, image):
+        """Given an image, process it and return the array."""
+        img = cv2.imread(image)
+        w, h = img.shape[:2]
+        target_w, target_h = self.img_shape
+        truncated_w, truncated_h = (np.random.randint(0, w - target_w), np.random.randint(0, h - target_h))
+        img = img[truncated_w:truncated_w + target_w, truncated_h:truncated_h + target_h, :]
+        img = img.astype(np.float32) / 127 - 1
+        return np.expand_dims(img, axis=0)
 
 class SiameseLossLayer(Layer):
     def __init__(self, batch_size,  num_distort, num_level, **kwargs):
@@ -139,8 +171,6 @@ class SiameseLossLayer(Layer):
         super(SiameseLossLayer, self).__init__(**kwargs)
 
     def loss(self, inputs):
-
-        self.dis = []
         loss = 0
         for batch in range(self.batch_size):
             for distort in range(self.num_distort):

@@ -4,8 +4,18 @@ from data import DataGenerator
 
 
 def train(model_name, batch_size, epoch):
-    val_generator = DataGenerator(r"D:\temp_data\precision_data\test\normal",r"D:\temp_data\distortion", batch_size=batch_size, img_shape=(256, 256))
-    train_generator = DataGenerator(r"D:\temp_data\precision_data\train\normal",r"D:\temp_data\train_distortion", batch_size=batch_size, img_shape=(256, 256))
+    train_generator = DataGenerator(
+        r"D:\AAA\Data\myiqa\train\origin",
+        r"D:\AAA\Data\myiqa\train\distortion",
+        batch_size,
+        (256, 256)
+    )
+    val_generator = DataGenerator(
+        r"D:\AAA\Data\myiqa\val\origin",
+        r"D:\AAA\Data\myiqa\val\distortion",
+        batch_size,
+        (256, 256)
+    )
 
     num_distort, num_level = train_generator.get_num_distort_level()
     # print(num_level, num_distort)
@@ -31,12 +41,11 @@ def train(model_name, batch_size, epoch):
     val_info = (steps_per_val, val_generator)
 
     model = SiameseModel(model_name, batch_size, num_distort, num_level)
-    model.summary()
     model.freeze_all_but_top()
-    model.fit(epoch, train_info, val_info)
+    model.fit(epoch, train_info, val_info, 'checkpoints')
     for layer in range(20):
         model.freeze_all_but_mid_and_top(-layer*10)
-        model.fit(30, train_info, val_info)
+        model.fit(30, train_info, val_info, 'checkpoints')
 
 def finetune():
     pass
