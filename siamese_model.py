@@ -76,6 +76,17 @@ class SiameseModel:
         for layer in self.model.layers[-2:]:
             layer.trainable = True
 
+    def freeze_all_but_mid_and_top(self, num_layer=172, loss_type="siamese"):
+        """After we fine-tune the dense layers, train deeper."""
+        # we chose to train the top 2 inception blocks, i.e. we will freeze
+        # the first 172 layers and unfreeze the rest:
+        for layer in self.model.layers[:num_layer]:
+            layer.trainable = False
+        for layer in self.model.layers[num_layer:]:
+            layer.trainable = True
+
+
+    def compile(self, optimizer='adam', loss_type="siamese"):
         if loss_type == "siamese":
             loss = self.siamese_loss
             try:
@@ -87,29 +98,11 @@ class SiameseModel:
         elif loss_type == "mse":
             loss = "mean_squared_error"
         else:
-            raise ValueError('Loss function must be in (siamese, mse)')
-
-        self.model.compile(optimizer='adam', loss=loss)
-
-    def freeze_all_but_mid_and_top(self, num_layer=172, loss_type="siamese"):
-        """After we fine-tune the dense layers, train deeper."""
-        # we chose to train the top 2 inception blocks, i.e. we will freeze
-        # the first 172 layers and unfreeze the rest:
-        for layer in self.model.layers[:num_layer]:
-            layer.trainable = False
-        for layer in self.model.layers[num_layer:]:
-            layer.trainable = True
-
-        if loss_type == "siamese":
-            loss = self.siamese_loss
-        elif loss_type == "mse":
-            loss = "mean_squared_error"
-        else:
             raise ValueError('loss function must be in (siamese, mse)')
 
         self.model.compile(
             # optimizer=SGD(lr=0.0001, momentum=0.9),
-            optimizer='adam',
+            optimizer=optimizer,
             loss=loss,
         )
 
@@ -118,7 +111,7 @@ class SiameseModel:
         if not os.path.exists(save_model_dir):
             os.mkdir(save_model_dir)
         checkpointer = ModelCheckpoint(
-            filepath=os.path.join(save_model_dir, '{loss:.5f}-%s.h5' % self.name),
+            filepath=os.path.join(save_model_dir, '{val_loss:.5f}-%s.h5' % self.name),
             verbose=1,
             save_best_only=True,
             save_weights_only=True,
