@@ -16,6 +16,7 @@
     mgn_level = [0.05, 0.09,0.13, 0.2];   % #19  Multiplicative Gaussian noise
     cqd_level = [64,32, 16,8,4];   % #22  Color quantization dither
     ca_level = [2,6,10,14];   % #23  Color aberrations
+    mblur_level = [];  % # 24 Motion Blur
 """
 import numpy as np
 import cv2
@@ -51,9 +52,10 @@ class Distortion:
         self.mgn_level = [0.05, 0.09, 0.13, 0.2]
         self.cqd_level = [64, 32, 16, 8, 4]
         self.ca_level = [2, 6, 10, 14]
+        self.mblur = [5, 8, 12, 16]
         self.idx2func = {
             1: "gaussian_noise",
-            2: "gassian_blur",
+            2: "gaussian_blur",
             3: "impulse_noise",
             4: "jpeg_compression",
             5: "nepn",
@@ -87,11 +89,13 @@ class Distortion:
         for worker in workers:
             worker.join()
 
-    def generate_data_one_worker(self, imgs, rank_root, worker_No):
+    def generate_data_one_worker(self, imgs, rank_root, worker_No=-1):
         print('Process No.%d start...' % worker_No)
         if not os.path.exists(rank_root):
             os.mkdir(rank_root)
-        for i in range(1, 11):
+
+        sorts = len(self.idx2func)
+        for i in range(1, sorts):
             func_path = os.path.join(rank_root, str(i))
             if not os.path.exists(func_path):
                 try:
@@ -120,11 +124,12 @@ class Distortion:
                         # raise AttributeError('%s 无法读取'%img)
                     distorted_img = eval("self."+self.idx2func[i])(img, level, worker_No)
                     save_path = os.path.join(level_path, img_name)
-                    cv2.imwrite(save_path, distorted_img)
+                    if not os.path.exists(save_path):
+                        cv2.imwrite(save_path, distorted_img)
                         # pbar.update(1)
         print('Process No.%d done' % worker_No)
 
-    def gaussian_noise(self, img, level, worker_No, is_rgb=True, return_uint8=True, var=False):
+    def gaussian_noise(self, img, level, worker_No=-1, is_rgb=True, return_uint8=True, var=False):
         """
         高斯噪声
         :param img: 输入图像rgb矩阵
@@ -148,7 +153,7 @@ class Distortion:
         else:
             return img
 
-    def gassian_blur(self, img, level, worker_No, return_uint8=True):
+    def gaussian_blur(self, img, level, worker_No=-1, return_uint8=True):
         """
         高斯模糊
         :param img: 输入图像rgb矩阵
@@ -161,7 +166,7 @@ class Distortion:
         else:
             return img
 
-    def impulse_noise(self, img, level, worker_No, return_uint8=True):
+    def impulse_noise(self, img, level, worker_No=-1, return_uint8=True):
         """
         脉冲噪声（椒盐噪声），随机把像素点变成0或255
         :param img: 输入图像rgb矩阵
@@ -178,7 +183,7 @@ class Distortion:
         else:
             return img
 
-    def quantization_noise(self, img, level, worker_No, return_uint8=True):
+    def quantization_noise(self, img, level, worker_No=-1, return_uint8=True):
         """
         otsu多级图像阈值分割（未完成）
         :param img: 输入图像rgb矩阵
@@ -190,7 +195,7 @@ class Distortion:
         else:
             return img
 
-    def jpeg_compression(self, img, level, worker_No, return_uint8=True):
+    def jpeg_compression(self, img, level, worker_No=-1, return_uint8=True):
         """
         jpeg压缩
         :param img: 输入图像rgb矩阵
@@ -204,7 +209,7 @@ class Distortion:
         else:
             return img
 
-    def nepn(self, img, level, worker_No, return_uint8=True):
+    def nepn(self, img, level, worker_No=-1, return_uint8=True):
         """
         效果：在图像上生成多个“像其他图像遗留在这里”的图，效果不错
         """
@@ -221,7 +226,7 @@ class Distortion:
         else:
             return nepn_img
 
-    def block_wise(self, img, level, worker_No, return_uint8=True):
+    def block_wise(self, img, level, worker_No=-1, return_uint8=True):
         """
         效果：在图片上中生成多个随机的小方块，看起来很突兀，可以不要
         """
@@ -250,7 +255,7 @@ class Distortion:
         else:
             return img
 
-    def hf_noise(self, img, level, worker_No, return_uint8=True):
+    def hf_noise(self, img, level, worker_No=-1, return_uint8=True):
         """
         高频噪声
         """
@@ -280,7 +285,7 @@ class Distortion:
         else:
             return img
 
-    def img_denoising(self, img, level, worker_No,  return_uint8=True):
+    def img_denoising(self, img, level, worker_No=-1,  return_uint8=True):
         """
         未完成
         """
@@ -293,7 +298,7 @@ class Distortion:
         else:
             return zrgb
 
-    def multi_gn(self, img, level, worker_No, return_uint8=True):
+    def multi_gn(self, img, level, worker_No=-1, return_uint8=True):
         img = img.astype(np.float)
         noise_only_img = 1 + np.random.normal(0, self.mgn_level[level], img.shape[:2])
         img[:, :, 0] *= noise_only_img
@@ -325,7 +330,7 @@ class Distortion:
         else:
             return img.astype(np.float)
 
-    def ca(self, img, level, worker_No, return_uint8=True):
+    def ca(self, img, level, worker_No=-1, return_uint8=True):
         hsize = 3
         r = img[:, :, 0]
         b = img[:, :, 2]
@@ -340,6 +345,26 @@ class Distortion:
             return img.astype(np.uint8)
         else:
             return img
+
+    def motion_blur(self, img, level, worker_No=-1, return_uint8=True, angle=45):
+        image = np.array(img)
+
+        # 这里生成任意角度的运动模糊kernel的矩阵， degree越大，模糊程度越高
+        M = cv2.getRotationMatrix2D((level / 2, level / 2), angle, 1)
+        motion_blur_kernel = np.diag(np.ones(level))
+        motion_blur_kernel = cv2.warpAffine(motion_blur_kernel, M, (level, level))
+
+        motion_blur_kernel = motion_blur_kernel / level
+        blurred = cv2.filter2D(image, -1, motion_blur_kernel)
+
+        # convert to uint8
+        cv2.normalize(blurred, blurred, 0, 255, cv2.NORM_MINMAX)
+        if return_uint8:
+            img = blurred.astype(np.uint8)
+        else:
+            img = img
+        return img
+
 
 def copy(src, dest):
     import shutil

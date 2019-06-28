@@ -7,75 +7,16 @@ import os
 from generate_rank_data import Distortion
 
 
-def get_diff(img):
-    w, h = img.shape[:2]
-    diff = 0.0
-    count = 0
-    for i in range(1, w-1):
-        for j in range(1, h-1):
-            count += 1
-            mini_diff = 0
-            if img[i, j] == img[i-1][j]:
-                mini_diff += 1
-            if img[i, j] == img[i][j-1]:
-                mini_diff += 1
-            if img[i, j] == img[i-1][j-1]:
-                mini_diff += 1
-            if img[i, j] == img[i][j+1]:
-                mini_diff += 1
-            if img[i, j] == img[i+1][j]:
-                mini_diff +=1
-            if img[i, j] == img[i+1][j+1]:
-                mini_diff += 1
-            if img[i, j] == img[i-1][j+1]:
-                mini_diff += 1
-            if img[i, j] == img[i+1][j-1]:
-                mini_diff += 1
-            diff += mini_diff/8.0
-    return diff/count
-
-def neighbor(img, kernel_size=5):
-    img = img.astype(np.float)
-    w, h = img.shape[:2]
-    mse = []
-    for i in range(0, w-kernel_size):
-        for j in range(0, h-kernel_size):
-            mse.append(get_diff(img[i:i+kernel_size, j:j+kernel_size]))
-    return 1-np.mean(mse)
-
-#
-# for file in glob.glob(r'C:\Users\Darkn\Desktop\1\*'):
-#     img = cv2.imread(file, 0)
-#     print(file, neighbor(img))
-
-def rgb2ind(img, level):
-    cv2.imshow('rgb2ind.png', img)
-    img = Image.open('rgb2ind.png')
-    indexed = np.array(img)
-
-    palette = img.getpalette()
-    num_colors = level//3
-    max_val = float(np.iinfo(img.dtype).max)
-    map = np.array(palette).reshape(num_colors, 3)/max_val
-    return indexed, map
-
-def ca(img, level, return_uint8=True):
-    hsize = 3
-    r = img[:, :, 0]
-    b = img[:, :, 2]
-    r2 = r.copy()
-    b2 = b.copy()
-    r2[:, level:] = r[:, 1:-level+1]
-    b2[:, level//2:] = b[:, 1:-level//2+1]
-    img[:, :, 0] = r2
-    img[:, :, 2] = b2
-    img = cv2.GaussianBlur(img, (hsize, hsize), hsize/6)
-    if return_uint8:
-        return img.astype(np.uint8)
-    else:
-        return img
-
-
+def add_haze(image, t=0.6, A=1):
+    '''
+        添加雾霾
+        t : 透视率 0~1
+        A : 大气光照
+    '''
+    image = image.astype(np.float)
+    constant = 50 * np.ones_like(images)
+    index = np.where(image> 25 and img <50, )
+    return image
 
 def gaussian_noise(img, level, is_rgb=True, return_uint8=True):
     """
@@ -108,7 +49,7 @@ def gaussian_noise(img, level, is_rgb=True, return_uint8=True):
 # cv2.imshow("1",img_1)
 # cv2.waitKey()
 
-# dis = Distortion()
+dis = Distortion()
 # img = cv2.imread(r'C:\Users\Darkn\Desktop\1\1.jpg')
 # cv2.imshow("img", img)
 # cv2.moveWindow("img", 500, 500)
@@ -118,21 +59,31 @@ def gaussian_noise(img, level, is_rgb=True, return_uint8=True):
 # print(time.time()-t)
 # cv2.imshow('i1', i1)
 #
-# # i2 = dis.gaussian_noise(img, 1)
-# # cv2.imshow('i2', i2)
-# # for i in range(4):
-# #     new = dis.ca(img, i)
-# #     w, h,c = new.shape
-# #     cv2.imshow("new_%d"%i, new)
-# #     cv2.moveWindow("new_%d"%i, i*h, 100)
+# i2 = dis.motion_blur(img, 100)
+# cv2.imshow('i2', i2)
+# for i in range(4):
+#     new = dis.ca(img, i)
+#     w, h,c = new.shape
+#     cv2.imshow("new_%d"%i, new)
+#     cv2.moveWindow("new_%d"%i, i*h, 100)
 # cv2.waitKey()
 
 
-for file in glob.glob(r'D:\temp_data\iqa\train\origin\*'):
-    try:
-        w, h, c=cv2.imread(file).shape
-        if w <=256 or h <=256:
-            raise BaseException('shan')
-    except BaseException:
-        print('removing %s'%file)
-        os.remove(file)
+# for file in glob.glob(r'D:\temp_data\iqa\train\origin\*'):
+#     try:
+#         w, h, c=cv2.imread(file).shape
+#         if w <=256 or h <=256:
+#             raise BaseException('shan')
+#     except BaseException:
+#         print('removing %s'%file)
+#         os.remove(file)
+
+
+img = cv2.imread(r'C:\Users\Darkn\Desktop\1\1.jpg')
+img_ = add_haze(img)
+print(img_.shape)
+# img__ = dis.motion_blur(img, 40, angle=45)
+cv2.imshow('Source image',img)
+cv2.imshow('blur image',img_)
+# cv2.imshow('blur image+',img__)
+cv2.waitKey()
