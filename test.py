@@ -108,21 +108,31 @@ def gaussian_noise(img, level, is_rgb=True, return_uint8=True):
 # cv2.imshow("1",img_1)
 # cv2.waitKey()
 
-dis = Distortion()
-img = cv2.imread(r'C:\Users\Darkn\Desktop\1\1.jpg')
-cv2.imshow("img", img)
-cv2.moveWindow("img", 500, 500)
-import time
-t = time.time()
-i1 = dis.hf_noise(img, 1, 0)
-print(time.time()-t)
-cv2.imshow('i1', i1)
+# dis = Distortion()
+# img = cv2.imread(r'C:\Users\Darkn\Desktop\1\1.jpg')
+# cv2.imshow("img", img)
+# cv2.moveWindow("img", 500, 500)
+# import time
+# t = time.time()
+# i1 = dis.hf_noise(img, 1, 0)
+# print(time.time()-t)
+# cv2.imshow('i1', i1)
+#
+# # i2 = dis.gaussian_noise(img, 1)
+# # cv2.imshow('i2', i2)
+# # for i in range(4):
+# #     new = dis.ca(img, i)
+# #     w, h,c = new.shape
+# #     cv2.imshow("new_%d"%i, new)
+# #     cv2.moveWindow("new_%d"%i, i*h, 100)
+# cv2.waitKey()
 
-# i2 = dis.gaussian_noise(img, 1)
-# cv2.imshow('i2', i2)
-# for i in range(4):
-#     new = dis.ca(img, i)
-#     w, h,c = new.shape
-#     cv2.imshow("new_%d"%i, new)
-#     cv2.moveWindow("new_%d"%i, i*h, 100)
-cv2.waitKey()
+
+for file in glob.glob(r'D:\temp_data\iqa\train\origin\*'):
+    try:
+        w, h, c=cv2.imread(file).shape
+        if w <=256 or h <=256:
+            raise BaseException('shan')
+    except BaseException:
+        print('removing %s'%file)
+        os.remove(file)

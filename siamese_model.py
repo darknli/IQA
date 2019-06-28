@@ -108,16 +108,17 @@ class SiameseModel:
             raise ValueError('loss function must be in (siamese, mse)')
 
         self.model.compile(
-            optimizer=SGD(lr=0.0001, momentum=0.9),
+            # optimizer=SGD(lr=0.0001, momentum=0.9),
+            optimizer='adam',
             loss=loss,
-        )\
+        )
 
     def fit(self, nb_epoch, train, val, save_model_dir):
 
         if not os.path.exists(save_model_dir):
             os.mkdir(save_model_dir)
         checkpointer = ModelCheckpoint(
-            filepath=os.path.join(save_model_dir, '{val_loss:.5f}-%s.h5' % self.name),
+            filepath=os.path.join(save_model_dir, '{loss:.5f}-%s.h5' % self.name),
             verbose=1,
             save_best_only=True,
             save_weights_only=True,
@@ -132,9 +133,9 @@ class SiameseModel:
             validation_steps=steps_per_val,
             steps_per_epoch=steps_per_train,
             epochs=nb_epoch,
-            workers=8,
+            # workers=8,
             verbose=1,
-            use_multiprocessing=True,
+            # use_multiprocessing=True,
             callbacks=[checkpointer]
         )
 
@@ -158,7 +159,7 @@ class SiameseModel:
                         diff = y_pred[step + j, :] - y_pred[step + i, :]+margin
                         loss += K.maximum(diff, 0)
                         sum += 1
-        return K.sum(loss)
+        return K.sum(loss)/sum
 
     def load_model(self, weights):
         self.model.load_weights(weights)
@@ -182,6 +183,8 @@ class SiameseModel:
                     continue
                 result[img_name] = coefficient*score
             return result
+        else:
+            raise ValueError('the path %s cannot be predicted!' % path)
 
     def process_image(self, image):
         """Given an image, process it and return the array."""
