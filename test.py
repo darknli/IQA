@@ -31,7 +31,7 @@ def add_haze(image, level):
 # cv2.waitKey()
 
 dis = Distortion()
-img = cv2.imread(r'E:\Data\nsfw\porn\Dctzt-MUW4-AA-T-C.jpg')
+img = cv2.imread(r'C:\Users\Darkn\Desktop\profile\1.jpg')
 cv2.imshow("img", img)
 cv2.moveWindow("img", 500, 500)
 # import time
@@ -41,7 +41,7 @@ for i in range(4):
     new = dis.quantization_noise(img, i)
     w, h,c = new.shape
     cv2.imshow("new_%d"%i, new)
-    cv2.moveWindow("new_%d"%i, i*h, 100)
+    # cv2.moveWindow("new_%d"%i, i*h, 100)
 cv2.waitKey()
 
 

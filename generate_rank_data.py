@@ -40,7 +40,7 @@ class Distortion:
         self.gnc_level = [0.0140, 0.0198, 0.0343, 0.0524]
         self.hfn_level = [0.03, 0.06, 0.1, 0.2]
         self.in_level = [0.001, 0.01, 0.05, 0.1]
-        self.qn_level = [10, 20, 50, 40]
+        self.qn_level = [15, 25, 35, 45]
         self.gblur_level = [7, 15, 39, 91]
         self.id_level = [0.001, 0.005, 0.01, 0.05]
         self.jpeg_level = [43, 12, 7, 4]
@@ -63,10 +63,12 @@ class Distortion:
             7: "hf_noise",
             8: "multi_gn",
             9:"cqd",
-            10:"ca"
+            10:"ca",
+            11:"quantization_noise",
+            12:"motion_blur"
         }
 
-    def generate_data(self, data, rank_root, num_workers=4):
+    def generate_data(self, data, rank_root, num_workers=4, sorts=[]):
         imgs = glob(os.path.join(data, '*'))
         if not os.path.exists(rank_root):
             os.mkdir(rank_root)
@@ -79,23 +81,24 @@ class Distortion:
             begin = end
             end += workload
             workers.append(
-                Process(target=self.generate_data_one_worker, args=(imgs[begin:end], rank_root, i))
+                Process(target=self.generate_data_one_worker, args=(imgs[begin:end], rank_root, i, sorts))
             )
         workers.append(
-            Process(target=self.generate_data_one_worker, args=(imgs[end:img_length], rank_root, num_workers-1))
+            Process(target=self.generate_data_one_worker, args=(imgs[end:img_length], rank_root, num_workers-1, sorts))
         )
         for worker in workers:
             worker.start()
         for worker in workers:
             worker.join()
 
-    def generate_data_one_worker(self, imgs, rank_root, worker_No=-1):
+    def generate_data_one_worker(self, imgs, rank_root, worker_No=-1, sorts=[]):
         print('Process No.%d start...' % worker_No)
         if not os.path.exists(rank_root):
             os.mkdir(rank_root)
 
-        sorts = len(self.idx2func)
-        for i in range(1, sorts):
+        if len(sorts) == 0:
+            sorts = [i for i in range(1, len(self.idx2func))]
+        for i in sorts:
             func_path = os.path.join(rank_root, str(i))
             if not os.path.exists(func_path):
                 try:
@@ -184,15 +187,18 @@ class Distortion:
             return img
 
     def quantization_noise(self, img, level, worker_No=-1, return_uint8=True):
+        """
+        量化噪声，把介于某个区间的像素点去上限
+        :param img: 输入图像rgb矩阵
+        :param level: 噪声比例等级
+        """
         img = img.astype(np.float)
-        span = 255 / self.qn_level[level]
-        end = 0
-        for i in range(1, self.qn_level[level]):
-            begin = end
-            end += span
-            constant = np.ceil(end) * np.ones_like(img)
-            img = np.where((img > begin) & (img < end), constant, img)
-        return img.astype(np.uint8)
+        img = np.floor(img/self.qn_level[level])
+        img *= self.qn_level[level]
+        if return_uint8 == True:
+            return img.astype(np.uint8)
+        else:
+            return img
 
     def jpeg_compression(self, img, level, worker_No=-1, return_uint8=True):
         """
@@ -388,7 +394,7 @@ if __name__ == '__main__':
 
     from time import time
     t1 = time()
-    distor.generate_data(r"D:\AAA\Data\myiqa\val\origin", r"D:\AAA\Data\myiqa\val\distortion")
+    distor.generate_data(r"", r"")
     t2 = time()
     print(t2-t1)
     # distor.generate_data_deprecated(r"D:\AAA\Data\myiqa\val\origin", r"D:\AAA\Data\myiqa\val\distortion")

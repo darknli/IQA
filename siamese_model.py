@@ -70,16 +70,12 @@ class SiameseModel:
         self.num_level = num_level
 
     def freeze_all_but_top(self, loss_type="siamese"):
-        """Used to train just the top layers of the model."""
         for layer in self.model.layers[:-2]:
             layer.trainable = False
         for layer in self.model.layers[-2:]:
             layer.trainable = True
 
     def freeze_all_but_mid_and_top(self, num_layer=172, loss_type="siamese"):
-        """After we fine-tune the dense layers, train deeper."""
-        # we chose to train the top 2 inception blocks, i.e. we will freeze
-        # the first 172 layers and unfreeze the rest:
         for layer in self.model.layers[:num_layer]:
             layer.trainable = False
         for layer in self.model.layers[num_layer:]:
@@ -110,6 +106,13 @@ class SiameseModel:
 
     def fit(self, nb_epoch, train, val, save_model_dir, mark=""):
 
+        if not os.path.exists(save_model_dir):
+            os.mkdir(save_model_dir)
+        import datetime
+        today = datetime.datetime.today()
+        name = '%s' % today
+        name = name.split(' ')[0]
+        save_model_dir = os.path.join(save_model_dir, name)
         if not os.path.exists(save_model_dir):
             os.mkdir(save_model_dir)
         checkpointer = ModelCheckpoint(
@@ -185,26 +188,3 @@ class SiameseModel:
         """Given an image, process it and return the array."""
         img = cv2.imread(image)
         return np.expand_dims(img, axis=0)
-
-class SiameseLossLayer(Layer):
-    def __init__(self, batch_size,  num_distort, num_level, **kwargs):
-        self.is_placeholder = True
-        self.batch_size = batch_size
-        self.num_distort = num_distort
-        self.num_level = num_level
-        super(SiameseLossLayer, self).__init__(**kwargs)
-
-    def loss(self, inputs):
-        loss = 0
-        for batch in range(self.batch_size):
-            for distort in range(self.num_distort):
-                for i in range(self.num_level-1):
-                    for j in range(i, self.num_level):
-                        loss += K.maximum(inputs[batch*distort+i, :]-inputs[batch*distort+j, :], 0)
-        return K.sum(loss)
-
-    def call(self, inputs):
-        loss = self.loss(inputs)
-        self.add_loss(loss, inputs=inputs)
-        # We don't use this output.
-        return inputs
