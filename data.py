@@ -86,12 +86,6 @@ class FTDataGenerator(keras.utils.Sequence):
         files = [(os.path.join(distort_dir, name),score) for name, score in mos_list]
         return files
 
-    def get_name2score(self, mos_list):
-        name2score = {}
-        for name, score in mos_list:
-            name2score[name] = score
-        return name2score
-
     def __len__(self):
         #计算每一个epoch的迭代次数
         return math.ceil(self.length / float(self.batch_size))
@@ -104,10 +98,10 @@ class FTDataGenerator(keras.utils.Sequence):
         while batch < self.batch_size:
             try:
                 number = np.random.randint(0, self.length)
-                img = self.get_iqa_imgs(self.filenames[number][0])
+                img = self.process_image(self.filenames[number][0])
                 data.append(img)
-                label = self.name2score[self.filenames[number][1]]
-                labels.append(np.array([label])/9)
+                label = self.filenames[number][1]
+                labels.append(np.array([label])/10)
                 batch += 1
             except OSError:
                 continue
@@ -130,7 +124,7 @@ class FTDataGenerator(keras.utils.Sequence):
 def get_train_val(filename, ratio=0.8, is_shuffle=True):
     name2score = []
     with open(filename) as f:
-        for line in f.read():
+        for line in f.readlines():
             score, name = line.strip().split(' ')
             name2score.append((name, float(score)))
     if is_shuffle:

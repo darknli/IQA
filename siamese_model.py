@@ -57,7 +57,7 @@ class SiameseModel:
             raise KeyError('Unknown network.')
         x = base_model.output
         x = GlobalAveragePooling2D()(x)
-        x = Dense(1024, activation='relu')(x)
+        # x = Dense(1024, activation='relu')(x)
         output = Dense(1, activation='sigmoid')(x)
         # output = SiameseLossLayer(self.batch_size, self.num_distort, self.num_level)(x)
         model = Model(inputs=base_model.input, outputs=output)
@@ -97,6 +97,8 @@ class SiameseModel:
                 )
         elif loss_type == "mse":
             loss = "mean_squared_error"
+        elif loss_type == "mae":
+            loss = "mean_absolute_error"
         else:
             raise ValueError('loss function must be in (siamese, mse)')
 
@@ -106,12 +108,12 @@ class SiameseModel:
             loss=loss,
         )
 
-    def fit(self, nb_epoch, train, val, save_model_dir):
+    def fit(self, nb_epoch, train, val, save_model_dir, mark=""):
 
         if not os.path.exists(save_model_dir):
             os.mkdir(save_model_dir)
         checkpointer = ModelCheckpoint(
-            filepath=os.path.join(save_model_dir, '{val_loss:.5f}-%s.h5' % self.name),
+            filepath=os.path.join(save_model_dir, '%s{val_loss:.5f}-%s.h5' % (mark, self.name)),
             verbose=1,
             save_best_only=True,
             save_weights_only=True,
@@ -168,7 +170,7 @@ class SiameseModel:
             return {path: coefficient*score}
         elif os.path.exists(path):
             result = {}
-            for img_name in glob(os.path.join(path, '*')):
+            for img_name in glob(os.path.join(path, '*'))[:20]:
                 try:
                     img = self.process_image(img_name)
                     score = self.model.predict(img)[0][0]

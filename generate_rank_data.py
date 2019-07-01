@@ -40,7 +40,7 @@ class Distortion:
         self.gnc_level = [0.0140, 0.0198, 0.0343, 0.0524]
         self.hfn_level = [0.03, 0.06, 0.1, 0.2]
         self.in_level = [0.001, 0.01, 0.05, 0.1]
-        self.qn_level = [255.//27, 255.//39, 255.//55, 255.//76]
+        self.qn_level = [10, 20, 50, 40]
         self.gblur_level = [7, 15, 39, 91]
         self.id_level = [0.001, 0.005, 0.01, 0.05]
         self.jpeg_level = [43, 12, 7, 4]
@@ -184,16 +184,15 @@ class Distortion:
             return img
 
     def quantization_noise(self, img, level, worker_No=-1, return_uint8=True):
-        """
-        otsu多级图像阈值分割（未完成）
-        :param img: 输入图像rgb矩阵
-        :param level: 分割等级
-        """
-        ret2, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        if return_uint8:
-            return img.astype(np.uint8)
-        else:
-            return img
+        img = img.astype(np.float)
+        span = 255 / self.qn_level[level]
+        end = 0
+        for i in range(1, self.qn_level[level]):
+            begin = end
+            end += span
+            constant = np.ceil(end) * np.ones_like(img)
+            img = np.where((img > begin) & (img < end), constant, img)
+        return img.astype(np.uint8)
 
     def jpeg_compression(self, img, level, worker_No=-1, return_uint8=True):
         """
