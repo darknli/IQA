@@ -28,8 +28,7 @@ def train(model_name, batch_size, epoch, train_dir, val_dir, img_shape=(256, 256
 
     model = SiameseModel(model_name)
     model.set_loss_param(batch_size, num_distort, num_level)
-    # model.freeze_all_but_top()
-    # model.freeze_all_but_mid_and_top(-2 * 10)
+    model.freeze_all_but_top()
     model.compile()
     model.fit(epoch, train_info, val_info, checkpoints_dir)
     for layer in range(1, 20):
@@ -60,7 +59,7 @@ def finetune(model_name, model_weights, filename, dataset_dir, epoch, batch_size
 def main():
     # args = get_arg()
     model_type = 0
-    batch_size = 1
+    batch_size = 4
     epoch = 30
     model_name = "MobileNetV2"
     chepoints_dir = 'no_hid_checkpoints'

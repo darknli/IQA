@@ -112,6 +112,7 @@ class Distortion:
                 if not os.path.exists(level_path):
                     try:
                         os.mkdir(level_path)
+
                     except FileExistsError:
                         pass
                 for img in imgs:
@@ -355,11 +356,11 @@ class Distortion:
         image = np.array(img)
 
         # 这里生成任意角度的运动模糊kernel的矩阵， degree越大，模糊程度越高
-        M = cv2.getRotationMatrix2D((level / 2, level / 2), angle, 1)
-        motion_blur_kernel = np.diag(np.ones(level))
-        motion_blur_kernel = cv2.warpAffine(motion_blur_kernel, M, (level, level))
+        M = cv2.getRotationMatrix2D((self.mblur[level] / 2, self.mblur[level] / 2), angle, 1)
+        motion_blur_kernel = np.diag(np.ones(self.mblur[level]))
+        motion_blur_kernel = cv2.warpAffine(motion_blur_kernel, M, (self.mblur[level], self.mblur[level]))
 
-        motion_blur_kernel = motion_blur_kernel / level
+        motion_blur_kernel = motion_blur_kernel / self.mblur[level]
         blurred = cv2.filter2D(image, -1, motion_blur_kernel)
 
         # convert to uint8
@@ -394,7 +395,7 @@ if __name__ == '__main__':
 
     from time import time
     t1 = time()
-    distor.generate_data(r"", r"")
+    distor.generate_data(r"D:\temp_data\iqa\val\origin", r"D:\temp_data\iqa\val\distortion", sorts=[11, 12], num_workers=8)
     t2 = time()
     print(t2-t1)
     # distor.generate_data_deprecated(r"D:\AAA\Data\myiqa\val\origin", r"D:\AAA\Data\myiqa\val\distortion")
