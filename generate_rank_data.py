@@ -115,15 +115,15 @@ class Distortion:
 
                     except FileExistsError:
                         pass
-                for img in imgs:
-                    if 'gif' in img:
+                for path in imgs:
+                    if 'gif' in path:
                         continue
-                    img_name = os.path.basename(img)
+                    img_name = os.path.basename(path)
                     try:
-                        img = cv2.imread(img).astype(np.float)
+                        img = cv2.imread(path).astype(np.float)
                     except AttributeError:
-                        print('%s 失败'%img)
-                        os.remove(img)
+                        print('%s 失败'%path)
+                        os.remove(path)
                         continue
                         # raise AttributeError('%s 无法读取'%img)
                     distorted_img = eval("self."+self.idx2func[i])(img, level, worker_No)

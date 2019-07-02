@@ -27,19 +27,22 @@ def train(model_name, batch_size, epoch, train_dir, val_dir, img_shape=(256, 256
     val_info = (steps_per_val, val_generator)
 
     model = SiameseModel(model_name)
+    # model.load_model('no_hid_checkpoints/0.04793-MobileNetV2.h5')
     model.set_loss_param(batch_size, num_distort, num_level)
     model.freeze_all_but_top()
     model.compile()
     model.fit(epoch, train_info, val_info, checkpoints_dir)
-    for layer in range(1, 20):
+    for layer in range(2, 20):
+        print('start to train model with top %d' % (layer*10))
         model.freeze_all_but_mid_and_top(-layer*10)
+        model.compile()
         model.fit(30, train_info, val_info, checkpoints_dir)
 
 def finetune(model_name, model_weights, filename, dataset_dir, epoch, batch_size, img_shape=(256, 256), checkpoints_dir="checkpoints"):
     train_files, val_files = get_train_val(filename)
     train_generator = FTDataGenerator(train_files, dataset_dir, batch_size, img_shape)
-    for x, y in train_generator:
-        print(y.tolist())
+    # for x, y in train_generator:
+    #     print(y.tolist())
     steps_per_train = train_generator.length // batch_size
     train_info = (steps_per_train, train_generator)
 
@@ -51,17 +54,21 @@ def finetune(model_name, model_weights, filename, dataset_dir, epoch, batch_size
     model.load_model(model_weights)
     # model.compile(loss_type="mse")
     # print(model.model.evaluate_generator(val_generator))
-    model.freeze_all_but_top()
+    # model.freeze_all_but_top()
     model.compile(loss_type="mae")
-    model.fit(epoch, train_info, val_info, save_model_dir=checkpoints_dir, mark="ft")
+    # model.fit(epoch, train_info, val_info, save_model_dir=checkpoints_dir, mark="ft")
+    for layer in range(2, 20):
+        model.freeze_all_but_mid_and_top(-layer * 10)
+        model.compile(loss_type="mae")
+        model.fit(30, train_info, val_info, checkpoints_dir, mark="ft")
 
 
 def main():
     # args = get_arg()
     model_type = 0
-    batch_size = 4
-    epoch = 30
-    model_name = "MobileNetV2"
+    batch_size = 2
+    epoch = 100
+    model_name = "Xception"
     chepoints_dir = 'no_hid_checkpoints'
     img_shape = (224, 224)
     if model_type == 0:
@@ -71,7 +78,7 @@ def main():
         train(model_name, batch_size, epoch, train_dir, val_dir, img_shape, chepoints_dir)
     elif model_type == 1:
         filename = r"E:\Data\IQA\tid2013\mos_with_names.txt"
-        model_weights = "checkpoints/0.02803-MobileNetV2.h5"
+        model_weights = "no_hid_checkpoints/2019-07-02/ft0.10340-MobileNetV2.h5"
         dataset_dir = r"E:\Data\IQA\tid2013\distorted_images"
         finetune(model_name, model_weights, filename, dataset_dir, epoch, batch_size, img_shape, chepoints_dir)
     else:

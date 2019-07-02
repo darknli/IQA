@@ -19,7 +19,7 @@ import os
 
 classes = ['bad', 'good']
 
-early_stopper = EarlyStopping(patience=10)
+early_stopper = EarlyStopping(patience=15)
 
 class SiameseModel:
     def __init__(self, model_name, weights="imagenet"):
@@ -122,7 +122,6 @@ class SiameseModel:
             save_weights_only=True,
             monitor='val_loss'
         )
-
         steps_per_train, train_data = train
         steps_per_val, val_data = val
         self.model.fit_generator(
@@ -131,10 +130,10 @@ class SiameseModel:
             validation_steps=steps_per_val,
             steps_per_epoch=steps_per_train,
             epochs=nb_epoch,
-            # workers=8,
-            verbose=1,
-            # use_multiprocessing=True,
-            callbacks=[checkpointer]
+            workers=8,
+            verbose=2,
+            use_multiprocessing=True,
+            callbacks=[checkpointer, early_stopper]
         )
 
     def summary(self):
@@ -145,19 +144,21 @@ class SiameseModel:
         loss = 0
         margin = 0.2
         sum = 0
-        for batch in range(self.batch_size):
-            batch_step = batch*self.num_level*self.num_level
-            for distort in range(self.num_distort):
-                distort_step = distort*self.num_level
-                step = batch_step+distort_step
-                for i in range(self.num_level - 1):
-                    for j in range(i+1, self.num_level):
-                        # loss += K.maximum(y_pred[batch * distort + i, :] - y_pred[batch * distort + j, :], 0)
-                        # loss += 1/(K.maximum(y_pred[batch * distort + i, :] - y_pred[batch * distort + j, :], 0)+1)
-                        diff = y_pred[step + j, :] - y_pred[step + i, :]+margin
-                        loss += K.maximum(diff, 0)
-                        sum += 1
-        return K.sum(loss)/sum
+        y_pred = K.reshape(y_pred, (self.batch_size*self.num_distort, -1))
+
+        # for batch in range(self.batch_size):
+        #     batch_step = batch*self.num_level*self.num_level
+        #     for distort in range(self.num_distort):
+        #         distort_step = distort*self.num_level
+        #         step = batch_step+distort_step
+        for i in range(self.num_level - 1):
+            for j in range(i+1, self.num_level):
+                # loss += K.maximum(y_pred[batch * distort + i, :] - y_pred[batch * distort + j, :], 0)
+                # loss += 1/(K.maximum(y_pred[batch * distort + i, :] - y_pred[batch * distort + j, :], 0)+1)
+                diff = y_pred[:, j] - y_pred[:, i]+margin
+                loss += K.maximum(diff, 0)
+                sum += 1
+        return K.mean(loss)/sum
 
     def load_model(self, weights):
         self.model.load_weights(weights)
@@ -187,4 +188,5 @@ class SiameseModel:
     def process_image(self, image):
         """Given an image, process it and return the array."""
         img = cv2.imread(image)
+        img = img.astype(float)/127 - 1
         return np.expand_dims(img, axis=0)

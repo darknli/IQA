@@ -14,7 +14,7 @@ def contrast(img_path, distort_path):
 
 
 siamese = SiameseModel("MobileNetV2", None)
-siamese.load_model("checkpoints/0.02803-MobileNetV2.h5")
+siamese.load_model("no_hid_checkpoints/2019-07-02//ft0.07357-MobileNetV2.h5")
 # contrast(r'D:\temp_data\iqa\train\origin\0.0024_1805.jpg', r'D:\temp_data\iqa\train\distortion')
 # filename = r'D:\AAA\Data\myiqa\train\origin\1a1ae8.jpg'
 # # print(siamese.predict(filename))
@@ -23,5 +23,5 @@ siamese.load_model("checkpoints/0.02803-MobileNetV2.h5")
 # #     for j in range(4):
 # #         dis_filename = filename.replace('origin', 'distortion/%d/%d'%(i, j))
 # #         print('  ', siamese.predict(dis_filename))
-for img, score in siamese.predict(r'C:\Users\Darkn\Desktop\test').items():
+for img, score in siamese.predict(r'E:\Data\IQA\tid2013\distorted_images').items():
     print(os.path.basename(img), score)
