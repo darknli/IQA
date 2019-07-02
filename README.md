@@ -1,4 +1,4 @@
-# 图像质量检测
+# RankingIQA
 1. Ranking data<br>
 Run the script generate_rank_data.py,and get a series of images with low quality.Here are the 12 ways we have prepared<br>
     1. Gaussian noise
@@ -15,4 +15,5 @@ Run the script generate_rank_data.py,and get a series of images with low quality
     12. Motion Blur
 2. Training the ranking data
 3. Fine-tune the model with your dataset
+4. [Original URL](https://github.com/xialeiliu/RankIQA)
     
