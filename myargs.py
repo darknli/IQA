@@ -1,3 +1,7 @@
+import argparse
+import os
+
+
 def get_arg():
     """
     Parse input arguments
@@ -5,9 +9,10 @@ def get_arg():
     parser = argparse.ArgumentParser(description="Tensorflow RankIQA Training")
 
     ## Path related arguments
-    parser.add_argument('--train_type', type=int, default=0, help='1: train the ranking data; 2: finetune model with small dataset')
-    parser.add_argument('--model_name', type=str, default="model", help='the root path of dataset')
-    parser.add_argument('--train_list', type=str, default='live_train.txt', help='data list for read image.')
+    parser.add_argument('--train_type', type=int, default=0, help='0: train the ranking data; 1: finetune model with small dataset')
+    parser.add_argument('--model_name', type=str, default="MobileNetV2", help='the root path of dataset')
+    parser.add_argument('--train_dir_ori', type=str, default=r"D:\temp_data\iqa\train\origin", help='the directory of train of the original images.')
+    parser.add_argument('--train_dir_dis', type=str, default=r"D:\temp_data\iqa\train\ordistortion", help='the directory of train of the distortion images.')
     parser.add_argument('--test_list', type=str, default='live_test.txt', help='data list for read image.')
     parser.add_argument('--ckpt_dir', type=str, default=os.path.abspath('..') + '/experiments',
                         help='the path of ckpt file')

@@ -13,8 +13,8 @@ def contrast(img_path, distort_path):
             print(siamese.predict(path))
 
 
-siamese = SiameseModel("MobileNetV2", None)
-siamese.load_model("no_hid_checkpoints/2019-07-02//ft0.07357-MobileNetV2.h5")
+siamese = SiameseModel("Xception", None)
+siamese.load_model("no_hid_checkpoints/2019-07-03/ft0.03794-Xception.h5")
 # contrast(r'D:\temp_data\iqa\train\origin\0.0024_1805.jpg', r'D:\temp_data\iqa\train\distortion')
 # filename = r'D:\AAA\Data\myiqa\train\origin\1a1ae8.jpg'
 # # print(siamese.predict(filename))

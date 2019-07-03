@@ -19,11 +19,12 @@ import os
 
 classes = ['bad', 'good']
 
-early_stopper = EarlyStopping(patience=15)
+early_stopper = EarlyStopping(patience=6)
 
 class SiameseModel:
     def __init__(self, model_name, weights="imagenet"):
         self.model = self.get_model(model_name, weights)
+        self.checkpointer = None
 
     def get_model(self, model_name, weights='imagenet'):
         if model_name == 'InceptionV3':
@@ -108,20 +109,21 @@ class SiameseModel:
 
         if not os.path.exists(save_model_dir):
             os.mkdir(save_model_dir)
-        import datetime
-        today = datetime.datetime.today()
-        name = '%s' % today
-        name = name.split(' ')[0]
-        save_model_dir = os.path.join(save_model_dir, name)
-        if not os.path.exists(save_model_dir):
-            os.mkdir(save_model_dir)
-        checkpointer = ModelCheckpoint(
-            filepath=os.path.join(save_model_dir, '%s{val_loss:.5f}-%s.h5' % (mark, self.name)),
-            verbose=1,
-            save_best_only=True,
-            save_weights_only=True,
-            monitor='val_loss'
-        )
+        if self.checkpointer is None:
+            import datetime
+            today = datetime.datetime.today()
+            name = '%s' % today
+            name = name.split(' ')[0]
+            save_model_dir = os.path.join(save_model_dir, name)
+            if not os.path.exists(save_model_dir):
+                os.mkdir(save_model_dir)
+            self.checkpointer = ModelCheckpoint(
+                filepath=os.path.join(save_model_dir, '%s{val_loss:.5f}-%s.h5' % (mark, self.name)),
+                verbose=1,
+                save_best_only=True,
+                save_weights_only=True,
+                monitor='val_loss'
+            )
         steps_per_train, train_data = train
         steps_per_val, val_data = val
         self.model.fit_generator(
@@ -133,7 +135,7 @@ class SiameseModel:
             workers=8,
             verbose=2,
             use_multiprocessing=True,
-            callbacks=[checkpointer, early_stopper]
+            callbacks=[self.checkpointer, early_stopper]
         )
 
     def summary(self):

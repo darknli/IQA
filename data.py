@@ -5,6 +5,7 @@ import numpy as np
 import cv2
 import glob
 import os
+import random
 
 
 class DataGenerator(keras.utils.Sequence):
@@ -14,6 +15,7 @@ class DataGenerator(keras.utils.Sequence):
         self.img_shape = img_shape
         self.length = len(self.filenames)
         self.level_dirs = self.get_level_dirs(distort_dir)
+        self.num_distort = None
         print('has %d examples' % len(self.filenames))
 
     def get_num_distort_level(self):
@@ -53,10 +55,13 @@ class DataGenerator(keras.utils.Sequence):
 
     def get_iqa_imgs(self, img):
         level_imgs = []
+        data = [(distort, level_paths) for distort, level_paths in self.level_dirs.items()]
+        if self.num_distort is not None:
+            data = random.sample(data, self.num_distort)
 
         origin_img = self.process_image(img)
         img_name = os.path.basename(img)
-        for distort, level_paths in self.level_dirs.items():
+        for distort, level_paths in data:
             level_imgs.append(origin_img)
             for level_path in level_paths:
                 level_img = os.path.join(level_path, img_name)
