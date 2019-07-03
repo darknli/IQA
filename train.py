@@ -1,6 +1,6 @@
 from siamese_model import SiameseModel
 from data import DataGenerator, get_train_val, FTDataGenerator
-# from myargs import get_arg
+from myargs import get_arg
 
 
 def train(model_name, batch_size, epoch, train_dir, val_dir, img_shape=(256, 256), checkpoints_dir="checkpoints"):
@@ -70,25 +70,34 @@ def finetune(model_name, model_weights, filename, dataset_dir, epoch, batch_size
 
 
 def main():
-    # args = get_arg()
-    train_type = 1
-    batch_size = 32
-    epoch = 100
-    model_name = "Xception"
-    chepoints_dir = 'no_hid_checkpoints'
-    img_shape = (224, 224)
-    if train_type == 0:
+    args = get_arg()
+    # train_type = 1
+    # batch_size = 32
+    # epoch = 100
+    # model_name = "Xception"
+    # chepoints_dir = 'no_hid_checkpoints'
+    # img_shape = (256, 256)
+    if args.train_type == 0:
 
-        train_dir = (r"D:\temp_data\iqa\train\origin", r"D:\temp_data\iqa\train\distortion")
-        val_dir = (r"D:\temp_data\iqa\val\origin", r"D:\temp_data\iqa\val\distortion")
-        train(model_name, batch_size, epoch, train_dir, val_dir, img_shape, chepoints_dir)
-    elif train_type == 1:
-        filename = r"E:\Data\IQA\tid2013\mos_with_names.txt"
-        model_weights = "no_hid_checkpoints/2019-07-02/0.02568-Xception.h5"
-        dataset_dir = r"E:\Data\IQA\tid2013\distorted_images"
-        finetune(model_name, model_weights, filename, dataset_dir, epoch, batch_size, img_shape, chepoints_dir)
+        train_dir = (args.train_dir_ori, args.train_dir_dis)
+        val_dir = (args.val_dir_ori, args.val_dir_dis)
+        train(args.model_name, args.batch_size, args.epoch, train_dir, val_dir, args.img_shape, args.chepoints_dir)
+    elif args.train_type == 1:
+        # filename = r"E:\Data\IQA\tid2013\mos_with_names.txt"
+        # dataset_dir = r"E:\Data\IQA\tid2013\distorted_images"
+        # model_weights = "no_hid_checkpoints/2019-07-02/0.02568-Xception.h5"
+        finetune(
+            args.model_name,
+            args.model_weights,
+            args.filename,
+            args.dataset_dir,
+            args.epoch,
+            args.batch_size,
+            args.img_shape,
+            args.chepoints_dir
+        )
     else:
-        raise ValueError("model_type cannot equal to %s" % train_type)
+        raise ValueError("model_type cannot equal to %s" % args.train_type)
 
 
 if __name__ == '__main__':

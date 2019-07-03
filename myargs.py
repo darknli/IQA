@@ -3,46 +3,35 @@ import os
 
 
 def get_arg():
-    """
-    Parse input arguments
-    """
-    parser = argparse.ArgumentParser(description="Tensorflow RankIQA Training")
+    parser = argparse.ArgumentParser(description="keras RankIQA Training")
 
-    ## Path related arguments
     parser.add_argument('--train_type', type=int, default=0, help='0: train the ranking data; 1: finetune model with small dataset')
     parser.add_argument('--model_name', type=str, default="MobileNetV2", help='the root path of dataset')
-    parser.add_argument('--train_dir_ori', type=str, default=r"D:\temp_data\iqa\train\origin", help='the directory of train of the original images.')
-    parser.add_argument('--train_dir_dis', type=str, default=r"D:\temp_data\iqa\train\ordistortion", help='the directory of train of the distortion images.')
-    parser.add_argument('--test_list', type=str, default='live_test.txt', help='data list for read image.')
-    parser.add_argument('--ckpt_dir', type=str, default=os.path.abspath('..') + '/experiments',
-                        help='the path of ckpt file')
-    parser.add_argument('--logs_dir', type=str, default=os.path.abspath('..') + '/experiments',
-                        help='the path of tensorboard logs')
-    parser.add_argument('--vgg_models_path', type=str,
-                        default=os.path.abspath('..') + "/experiments/vgg_models/" + 'vgg16_weights.npz')
+    parser.add_argument('--chepoints_dir', type=str, default=r"no_hid_checkpoints", help='the root direcory saved model')
+    parser.add_argument('--epoch', type=int, default=100, help='the number of epoch')
+    parser.add_argument('--batch_size', type=int, default=32,
+                        help='''batch size is recommended to be set to 2 but 32
+                        If the selection 0 of train_type ''')
+    parser.add_argument('--img_shape', type=tuple, default=(256, 256), help='inputs shape of images')
 
-    ## models retated argumentss
-    parser.add_argument('--save_ckpt_file', type=str2bool, default=True,
-                        help="whether to save trained checkpoint file ")
+    # train_type = 0
+    parser.add_argument('--train_dir_ori', type=str, default=r"D:\temp_data\iqa\train\origin",
+                        help='the directory of train of the original images.')
+    parser.add_argument('--train_dir_dis', type=str, default=r"D:\temp_data\iqa\train\ordistortion",
+                        help='the directory of train of the distortion images.')
+    parser.add_argument('--val_dir_ori', type=str, default=r"D:\temp_data\iqa\val\origin",
+                        help='the directory of validation of the original images.')
+    parser.add_argument('--val_dir_dis', type=str, default=r"D:\temp_data\iqa\val\ordistortion",
+                        help='the directory of validation of the distortion images.')
 
-    ## dataset related arguments
-    parser.add_argument('--dataset', default='tid2013', type=str, choices=["LIVE", "CSIQ", "tid2013"],
-                        help='datset choice')
-    parser.add_argument('--crop_width', type=int, default=224, help='train patch width')
-    parser.add_argument('--crop_height', type=int, default=224, help='train patch height')
+    # train_type = 1
+    parser.add_argument('--filename', type=str, default=r"E:\Data\IQA\tid2013\mos_with_names.txt",
+                        help='name of data list for read images and its mean opinion score.')
+    parser.add_argument('--dataset_dir', type=str, default=r"E:\Data\IQA\tid2013\distorted_images",
+                        help='the path of dataset')
+    parser.add_argument('--model_weights', type=str, default="no_hid_checkpoints/2019-07-02/0.02568-Xception.h5",
+                        help='the path of model weights')
 
-    ## train related arguments
-    parser.add_argument('--is_training', type=str2bool, default=True, help='whether to train or test.')
-    parser.add_argument('--is_eval', type=str2bool, default=True, help='whether to test.')
-    parser.add_argument('--batch_size', type=int, default=24)
-    parser.add_argument('--test_step', type=int, default=500)
-    parser.add_argument('--summary_step', type=int, default=10)
 
-    ## optimization related arguments
-    parser.add_argument('--learning_rate', type=float, default=3e-4, help='init learning rate')
-    parser.add_argument('--dropout_keep_prob', type=float, default=0.7, help='keep neural node')
-    parser.add_argument('--iter_max', type=int, default=90000, help='the maxinum of iteration')
-    parser.add_argument('--learning_rate_decay_factor', type=float, default=0.9)
-    parser.add_argument('--weight_decay', type=float, default=4e-5)
     args = parser.parse_args()
     return args
